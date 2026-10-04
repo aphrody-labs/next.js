@@ -17,7 +17,7 @@ use turbo_rcstr::RcStr;
 use crate::{
     evaluate::Operation,
     pool_stats::{AcquiredPermits, NodeJsPoolStats},
-    worker_pool::worker_thread,
+    worker_pool::{budget::WorkerPoolBudget, worker_thread},
 };
 
 /// A bidirectional message channel using unbounded mpsc.
@@ -58,11 +58,22 @@ impl<T: Send + Sync + 'static> MessageChannel<T> {
     }
 }
 
-#[derive(Default)]
 pub(crate) struct PoolState {
     pub(crate) idle_workers: Mutex<Vec<u32>>,
     pub(crate) stats: Arc<Mutex<NodeJsPoolStats>>,
     pub(crate) waiters: Mutex<Vec<oneshot::Sender<u32>>>,
+    pub(crate) budget: WorkerPoolBudget,
+}
+
+impl PoolState {
+    fn new(concurrency: usize) -> Result<Self> {
+        Ok(Self {
+            idle_workers: Mutex::default(),
+            stats: Arc::default(),
+            waiters: Mutex::default(),
+            budget: WorkerPoolBudget::new(concurrency).map_err(anyhow::Error::msg)?,
+        })
+    }
 }
 
 #[turbo_tasks::value(cell = "new", serialization = "skip", eq = "manual", shared)]
@@ -92,8 +103,19 @@ impl WorkerPoolOperation {
     pub(crate) async fn get_pool_state(
         &self,
         worker_options: Arc<WorkerOptions>,
-    ) -> Arc<PoolState> {
-        self.pools.lock().entry(worker_options).or_default().clone()
+        concurrency: usize,
+    ) -> Result<Arc<PoolState>> {
+        let mut pools = self.pools.lock();
+        if let Some(state) = pools.get(&worker_options) {
+            state
+                .budget
+                .ensure_compatible(concurrency)
+                .map_err(anyhow::Error::msg)?;
+            return Ok(state.clone());
+        }
+        let state = Arc::new(PoolState::new(concurrency)?);
+        pools.insert(worker_options, state.clone());
+        Ok(state)
     }
 
     pub(crate) fn scale_down(&self) -> Result<()> {
@@ -193,8 +215,13 @@ pub(crate) fn terminate_worker(worker_options: Arc<WorkerOptions>, worker_id: u3
     WORKER_POOL_OPERATION.terminate_worker(worker_options, worker_id)
 }
 
-pub(crate) async fn get_pool_state(worker_options: Arc<WorkerOptions>) -> Arc<PoolState> {
-    WORKER_POOL_OPERATION.get_pool_state(worker_options).await
+pub(crate) async fn get_pool_state(
+    worker_options: Arc<WorkerOptions>,
+    concurrency: usize,
+) -> Result<Arc<PoolState>> {
+    WORKER_POOL_OPERATION
+        .get_pool_state(worker_options, concurrency)
+        .await
 }
 
 /// Pre-allocated channels for a single task's communication.
@@ -304,5 +331,96 @@ impl Operation for WorkerOperation {
             // Clearing the return-to-pool callback does not stop the underlying Node.js worker.
             let _ = terminate_worker(self.worker_options.clone(), self.worker_id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        future::Future,
+        sync::Arc,
+        task::{Context, Poll, Waker},
+    };
+
+    use anyhow::Result;
+
+    use super::{PoolState, WorkerOptions, WorkerPoolOperation};
+
+    fn state_for(
+        registry: &WorkerPoolOperation,
+        options: Arc<WorkerOptions>,
+        concurrency: usize,
+    ) -> Result<Arc<PoolState>> {
+        let mut request = Box::pin(registry.get_pool_state(options, concurrency));
+        let mut context = Context::from_waker(Waker::noop());
+        let Poll::Ready(state) = request.as_mut().poll(&mut context) else {
+            panic!("pool owner lookup unexpectedly waited");
+        };
+        state
+    }
+
+    fn options(filename: &str) -> Arc<WorkerOptions> {
+        Arc::new(WorkerOptions {
+            cwd: "/project".into(),
+            filename: filename.into(),
+        })
+    }
+
+    #[test]
+    fn equal_keys_share_one_owner_and_one_reservation_budget() {
+        let registry = WorkerPoolOperation::default();
+        let first = state_for(&registry, options("worker.js"), 2).unwrap();
+        let second = state_for(&registry, options("worker.js"), 2).unwrap();
+        assert!(Arc::ptr_eq(&first, &second));
+        assert!(Arc::ptr_eq(&first.budget.bootup, &second.budget.bootup));
+        assert_eq!(registry.pools.lock().len(), 1);
+        let first_reservation = first
+            .budget
+            .concurrency
+            .clone()
+            .try_acquire_owned()
+            .unwrap();
+        let second_reservation = second
+            .budget
+            .concurrency
+            .clone()
+            .try_acquire_owned()
+            .unwrap();
+        assert_eq!(first.budget.concurrency.available_permits(), 0);
+        assert!(
+            second
+                .budget
+                .concurrency
+                .clone()
+                .try_acquire_owned()
+                .is_err()
+        );
+        drop(first_reservation);
+        drop(second_reservation);
+        assert_eq!(first.budget.concurrency.available_permits(), 2);
+    }
+
+    #[test]
+    fn incompatible_limits_cannot_replace_a_live_pool_owner() {
+        let registry = WorkerPoolOperation::default();
+        assert!(state_for(&registry, options("invalid.js"), 0).is_err());
+        assert!(registry.pools.lock().is_empty());
+        let first = state_for(&registry, options("worker.js"), 2).unwrap();
+        let reservation = first
+            .budget
+            .concurrency
+            .clone()
+            .try_acquire_owned()
+            .unwrap();
+        assert!(state_for(&registry, options("worker.js"), 1).is_err());
+        assert!(state_for(&registry, options("worker.js"), 3).is_err());
+        let second = state_for(&registry, options("worker.js"), 2).unwrap();
+        assert!(Arc::ptr_eq(&first, &second));
+        assert_eq!(first.budget.concurrency.available_permits(), 1);
+        let distinct = state_for(&registry, options("other-worker.js"), 1).unwrap();
+        assert!(!Arc::ptr_eq(&first, &distinct));
+        assert_eq!(registry.pools.lock().len(), 2);
+        drop(reservation);
+        assert_eq!(first.budget.concurrency.available_permits(), 2);
     }
 }

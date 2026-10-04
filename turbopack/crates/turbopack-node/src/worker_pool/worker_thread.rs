@@ -60,12 +60,11 @@ pub async fn create_worker(options: Arc<WorkerOptions>) -> anyhow::Result<u32> {
 
     {
         let pending = PENDING_CREATIONS.get_or_init(|| Mutex::new(VecDeque::new()));
-        // ensure pool entry exists for these options so scale ops can observe it
-        WORKER_POOL_OPERATION
-            .pools
-            .lock()
-            .entry(options.clone())
-            .or_default();
+        // A worker must belong to the configured pool whose shared budget was
+        // reserved by acquire_worker; never create a second, unconfigured owner.
+        if !WORKER_POOL_OPERATION.pools.lock().contains_key(&options) {
+            anyhow::bail!("Worker pool is not configured");
+        }
         pending.lock().push_back(tx);
     }
 

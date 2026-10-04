@@ -8,11 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use rustc_hash::FxHashMap;
-use tokio::{
-    select,
-    sync::{Semaphore, oneshot},
-    time::sleep,
-};
+use tokio::{select, sync::oneshot, time::sleep};
 use turbo_rcstr::{RcStr, rcstr};
 use turbo_tasks::{ResolvedVc, duration_span};
 use turbo_tasks_fs::FileSystemPath;
@@ -31,6 +27,7 @@ use crate::{
     },
 };
 
+mod budget;
 mod operation;
 mod worker_thread;
 
@@ -45,16 +42,11 @@ static OPERATION_TASK_ID: AtomicU32 = AtomicU32::new(1);
 )]
 pub(crate) struct WorkerThreadPool {
     worker_options: Arc<WorkerOptions>,
-    concurrency: usize,
     pub(crate) assets_for_source_mapping: ResolvedVc<AssetsForSourceMapping>,
     pub(crate) assets_root: FileSystemPath,
     pub(crate) project_dir: FileSystemPath,
     #[turbo_tasks(unsafe_ignore, debug_ignore)]
     state: Arc<PoolState>,
-    #[turbo_tasks(unsafe_ignore, debug_ignore)]
-    concurrency_semaphore: Arc<Semaphore>,
-    #[turbo_tasks(unsafe_ignore, debug_ignore)]
-    bootup_semaphore: Arc<Semaphore>,
 }
 
 impl WorkerThreadPool {
@@ -68,34 +60,34 @@ impl WorkerThreadPool {
         project_dir: FileSystemPath,
         concurrency: usize,
         debug: bool,
-    ) -> EvaluatePool {
+    ) -> Result<EvaluatePool> {
         let cwd: RcStr = cwd.to_string_lossy().into();
         let filename: RcStr = entrypoint.to_string_lossy().into();
         let worker_options = Arc::new(WorkerOptions { cwd, filename });
-        let state = get_pool_state(worker_options.clone()).await;
-        EvaluatePool::new(
+        let concurrency = if debug { 1 } else { concurrency };
+        let state = get_pool_state(worker_options.clone(), concurrency).await?;
+        Ok(EvaluatePool::new(
             Box::new(Self {
                 worker_options,
-                concurrency: (if debug { 1 } else { concurrency }),
                 assets_for_source_mapping,
                 assets_root: assets_root.clone(),
                 project_dir: project_dir.clone(),
                 state,
-                concurrency_semaphore: Arc::new(Semaphore::new(if debug {
-                    1
-                } else {
-                    concurrency
-                })),
-                bootup_semaphore: Arc::new(Semaphore::new(1)),
             }) as Box<dyn EvaluateOperation>,
             assets_for_source_mapping,
             assets_root,
             project_dir,
-        )
+        ))
     }
 
     async fn acquire_worker(&self) -> Result<(u32, AcquiredPermits)> {
-        let concurrency_permit = self.concurrency_semaphore.clone().acquire_owned().await?;
+        let concurrency_permit = self
+            .state
+            .budget
+            .concurrency
+            .clone()
+            .acquire_owned()
+            .await?;
 
         {
             let mut idle = self.state.idle_workers.lock();
@@ -125,7 +117,7 @@ impl WorkerThreadPool {
         }
 
         let bootup = async {
-            let permit = self.bootup_semaphore.clone().acquire_owned().await;
+            let permit = self.state.budget.bootup.clone().acquire_owned().await;
             let wait_time = self.state.stats.lock().wait_time_before_bootup();
             sleep(wait_time).await;
             permit
@@ -148,7 +140,7 @@ impl WorkerThreadPool {
                     stats.finished_booting_worker();
                 }
 
-                self.bootup_semaphore.add_permits(1);
+                self.state.budget.bootup.add_permits(1);
                 Ok((worker_id, AcquiredPermits::Fresh { _concurrency_permit: concurrency_permit, _bootup_permit: bootup_permit }))
             }
         }
@@ -181,7 +173,7 @@ impl NodeBackend for WorkerThreadsBackend {
                 debug,
             } = options;
 
-            Ok(WorkerThreadPool::create(
+            WorkerThreadPool::create(
                 cwd,
                 entrypoint,
                 env,
@@ -191,7 +183,7 @@ impl NodeBackend for WorkerThreadsBackend {
                 concurrency,
                 debug,
             )
-            .await)
+            .await
         })
     }
 
