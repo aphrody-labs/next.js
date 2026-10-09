@@ -27,7 +27,6 @@ export const WORKSPACES = [
   'crates/*/js',
   'turbopack/crates/*/js',
   'turbopack/crates/turbopack-tests/tests/execution',
-  'test/*',
 ]
 
 /** Files upstream has and the fork deletes. */

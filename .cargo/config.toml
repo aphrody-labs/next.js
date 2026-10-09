@@ -53,7 +53,6 @@ rustflags = ["-Clink-arg=--icf=all"]
 
 # Windows: statically link the CRT and opt into rust-lld for fast linking.
 # rust-lld is not yet the default on Windows (tracking: rust-lang/rust#71520).
-# rust-lld uses response files (@) to prevent exceeding Windows 8192-char command line limits.
 [target.'cfg(windows)']
 linker = "rust-lld"
 rustflags = [
@@ -62,12 +61,6 @@ rustflags = [
   # improving sccache hit rates by making .rlib/.rmeta output reproducible.
   "-Clink-arg=/Brepro",
 ]
-
-[target.x86_64-pc-windows-msvc]
-linker = "rust-lld"
-
-[target.aarch64-pc-windows-msvc]
-linker = "rust-lld"
 
 # Why `linker-flavor=gnu-lld-cc` instead of `linker = "rust-lld"`?
 #

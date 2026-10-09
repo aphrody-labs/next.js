@@ -4959,8 +4959,6 @@ function getBundlerForTelemetry(bundler: Bundler) {
       return 'rspack'
     case Bundler.Webpack:
       return 'webpack'
-    case Bundler.Bun:
-      return 'bun'
     default:
       throw new Error(`unknown bundler: ${bundler}`)
   }

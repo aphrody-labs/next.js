@@ -8,15 +8,13 @@ Coordination: section M of `PLAN.md` in aphrody-labs/bun.
 - `@aphrody` scope at publication, with npm aliases. `download-swc` and the postinstall no longer fall back to upstream.
 - Bun-aware upstream sync every 6 h.
 - npm release for the 8 next-swc platforms and the JS packages, plus a GitHub release.
+- `next build` compile step through `Bun.build` (`packages/next/src/build/bun-build`), selected by `NEXT_BUN=1` or `next build --bun`: Pages Router, Node.js runtime, CSS. The App Router, the edge runtime and instrumentation are rejected.
+- Turbopack's Node.js process pool and `process.version` probe start `TURBOPACK_NODE_BINARY`, else the `node` or `bun` process that loaded the bindings (`turbopack-core` `node_executable()`).
 
 ## Next
 
-1. Native Bun runtime in Next (port of `@aphrody/next-bun` from aphrody-labs/bun, `packages/bun-next`):
-   - `Bundler.Bun` in `packages/next/src/lib/bundler.ts`;
-   - Pages Router build through `Bun.build`;
-   - `withBun` config;
-   - standalone output.
-2. Turbopack and PostCSS workers start the current runtime (`process.execPath`, so Bun) instead of `node`. This removes the `node` shim on PATH used by next-bun.
+1. Bun.build beyond the Pages Router: App Router, edge runtime, standalone output. `withBun` stays in `@aphrody/next-bun` (aphrody-labs/bun, `packages/bun-next`).
+2. A faster build of `packages/next` itself: a `Bun.build` transpile has to reproduce `taskr release` (SWC options per target, `dist/esm`, `ncc` and the `next_bundle` runtime bundles) and be measured against it before replacing it.
 3. Workers, scripts and tooling go through n2b (Node APIs to Bun APIs when faster or equivalent). `packages/next/src` keeps `process.env` and the `node:` imports, which the edge/client bundles and the DefinePlugin depend on.
 4. Move jest suites to `bun test` in batches; keep the rest runnable under Bun.
 5. Before/after measures: native build, example app build, dev cold start.

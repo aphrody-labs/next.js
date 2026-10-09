@@ -22,11 +22,6 @@ import {
 } from '../../client/components/app-router-headers'
 import { computeCacheBustingSearchParam } from '../../shared/lib/router/utils/cache-busting-search-param'
 import type { AnyStream } from '../app-render/stream-ops'
-import {
-  isHTMLRewriterAvailable,
-  injectHeadWithHTMLRewriter,
-  injectBodyWithHTMLRewriter,
-} from '../web/spec-extension/html-rewriter'
 
 function voidCatch() {
   // this catcher is designed to be used with pipeTo where we expect the underlying
@@ -1239,10 +1234,4 @@ export function createRuntimePrefetchTransformStream(
       processChunk(controller, null)
     },
   })
-}
-
-export {
-  isHTMLRewriterAvailable,
-  injectHeadWithHTMLRewriter,
-  injectBodyWithHTMLRewriter,
 }

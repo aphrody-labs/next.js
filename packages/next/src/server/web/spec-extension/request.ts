@@ -28,26 +28,14 @@ export class NextRequest extends Request {
     // node Request instance requires duplex option when a body
     // is present or it errors, we don't handle this for
     // Request being passed in since it would have already
-    // errored if this wasn't configured. Bun does not require duplex: 'half'.
-    if (process.env.NEXT_RUNTIME !== 'edge' && !process.versions?.bun) {
+    // errored if this wasn't configured
+    if (process.env.NEXT_RUNTIME !== 'edge') {
       if (init.body && init.duplex !== 'half') {
         init.duplex = 'half'
       }
     }
 
-    // On Bun, directly leverage underlying native Request if input wraps one
-    const nativeReq =
-      Boolean(process.versions?.bun) &&
-      input &&
-      typeof input === 'object' &&
-      ('_nativeRequest' in input
-        ? (input as any)._nativeRequest
-        : 'request' in input && (input as any).request instanceof Request
-          ? (input as any).request
-          : undefined)
-
-    const effectiveInput = nativeReq instanceof Request ? nativeReq : input
-    if (effectiveInput instanceof Request) super(effectiveInput, init)
+    if (input instanceof Request) super(input, init)
     else super(url, init)
 
     const nextUrl = new NextURL(url, {
@@ -113,27 +101,6 @@ export class NextRequest extends Request {
 
   public get url() {
     return this[INTERNALS].url
-  }
-
-  /**
-   * Returns this request as a native Web Request instance.
-   * On Bun, this directly exposes the native C++ Request.
-   */
-  public toNativeRequest(): Request {
-    return this
-  }
-
-  /**
-   * Constructs a NextRequest directly from an input or native Request.
-   */
-  public static from(
-    input: URL | RequestInfo | NextRequest,
-    init?: RequestInit
-  ): NextRequest {
-    if (input instanceof NextRequest && !init) {
-      return input
-    }
-    return new NextRequest(input, init)
   }
 }
 

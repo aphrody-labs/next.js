@@ -1,9 +1,17 @@
-import { Bundler, finalizeBundlerFromConfig, isBunBundler } from './bundler'
+import {
+  Bundler,
+  finalizeBundlerFromConfig,
+  isBunBundler,
+  parseBundlerArgs,
+} from './bundler'
 
 describe('Bun bundler selection', () => {
   const saved = {
     NEXT_BUN: process.env.NEXT_BUN,
     NEXT_RSPACK: process.env.NEXT_RSPACK,
+    NEXT_TEST_USE_RSPACK: process.env.NEXT_TEST_USE_RSPACK,
+    TURBOPACK: process.env.TURBOPACK,
+    IS_TURBOPACK_TEST: process.env.IS_TURBOPACK_TEST,
   }
   afterEach(() => {
     for (const [key, value] of Object.entries(saved)) {
@@ -33,17 +41,18 @@ describe('Bun bundler selection', () => {
     expect(finalizeBundlerFromConfig(Bundler.Turbopack)).toBe(Bundler.Turbopack)
   })
 
-  it('selects Bundler.Bun with --bun argument', () => {
-    const { parseBundlerArgs } = (require('./bundler') as typeof import('./bundler'))
-    expect(parseBundlerArgs({ bun: true })).toBe(Bundler.Bun)
-    expect(process.env.NEXT_BUN).toBe('1')
-  })
-
-  it('enables NEXT_BUN with withBun() helper', () => {
-    const { withBun } = (require('./bundler') as typeof import('./bundler'))
+  it('maps --bun to the webpack pipeline and sets NEXT_BUN', () => {
     delete process.env.NEXT_BUN
-    const config = withBun({ reactStrictMode: true })
-    expect(config.reactStrictMode).toBe(true)
-    expect(process.env.NEXT_BUN).toBe('1')
+    for (const key of [
+      'NEXT_RSPACK',
+      'NEXT_TEST_USE_RSPACK',
+      'TURBOPACK',
+      'IS_TURBOPACK_TEST',
+    ]) {
+      delete process.env[key]
+    }
+    expect(parseBundlerArgs({ bun: true })).toBe(Bundler.Webpack)
+    expect(isBunBundler()).toBe(true)
+    expect(parseBundlerArgs({ bun: true, webpack: true })).toBe(Bundler.Webpack)
   })
 })
