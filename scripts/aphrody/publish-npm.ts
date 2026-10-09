@@ -1,6 +1,7 @@
 // Publishes the fork's npm packages under @aphrody (replaces scripts/publish-release.js).
 //
 //   bun scripts/aphrody/publish-npm.ts version                      print the next `<base>-aphrody.N`
+//   bun scripts/aphrody/publish-npm.ts version --tag aphrody-v<v>   print <v>, checked against packages/next
 //   bun scripts/aphrody/publish-npm.ts publish --version <v> [--native <dir>] [--out <dir>] [--dry-run]
 //
 // Every package of the release shares one version, `<packages/next version>-aphrody.<n>`.
@@ -40,6 +41,24 @@ export function nextVersion(base: string, published: Iterable<string>): string {
     if (m) max = Math.max(max, Number(m[1]))
   }
   return `${base}-aphrody.${max + 1}`
+}
+
+/**
+ * The version named by a release tag `aphrody-v<base>-aphrody.<n>`. `base`
+ * must be packages/next's version: a tag pushed on another checkout fails
+ * instead of publishing a version that does not match the sources.
+ */
+export function tagVersion(tag: string, base: string): string {
+  const name = tag.replace(/^refs\/tags\//, '')
+  const version = name.replace(/^aphrody-v/, '')
+  const re = new RegExp(
+    `^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-aphrody\\.\\d+$`
+  )
+  if (name === version || !re.test(version))
+    throw new Error(
+      `tag ${name} is not aphrody-v${base}-aphrody.<n> (packages/next is ${base})`
+    )
+  return version
 }
 
 /** npm dist-tag: the prerelease channel of the upstream base (`canary`, `rc`...), else `latest`. */
@@ -143,20 +162,18 @@ async function stageWorkspacePackage(
     .trim()
     .split('\n')
     .pop()!
-  const staging = join(out, dir.replaceAll('/', '__'))
-  rmSync(staging, { recursive: true, force: true })
-  mkdirSync(staging, { recursive: true })
-  run(
-    [
-      'tar',
-      '-xzf',
-      tgz.includes('/') || tgz.includes('\\') ? tgz : join(tgzDir, tgz),
-      '-C',
-      staging,
-      '--strip-components=1',
-    ],
-    ROOT
+  // Bun.Archive rather than tar: Git Bash's GNU tar reads `C:\...` as a remote host.
+  const unpacked = join(out, dir.replaceAll('/', '__'))
+  rmSync(unpacked, { recursive: true, force: true })
+  const archive = new Bun.Archive(
+    await Bun.file(
+      tgz.includes('/') || tgz.includes('\\') ? tgz : join(tgzDir, tgz)
+    ).bytes()
   )
+  await archive.extract(unpacked)
+  const staging = join(unpacked, 'package')
+  if (!existsSync(join(staging, 'package.json')))
+    throw new Error(`${tgz}: no package/package.json in the packed tarball`)
   const manifest = publishManifest(source, version, dir)
   if (source.name === 'next') {
     manifest.optionalDependencies = {
@@ -239,7 +256,12 @@ if (import.meta.main) {
     const base = JSON.parse(
       readFileSync(join(ROOT, 'packages/next/package.json'), 'utf8')
     ).version
-    console.log(nextVersion(base, await publishedVersions(scopedName('next')!)))
+    const tag = value('--tag')
+    console.log(
+      tag
+        ? tagVersion(tag, base)
+        : nextVersion(base, await publishedVersions(scopedName('next')!))
+    )
   } else if (cmd === 'publish') {
     const version = value('--version')
     if (!version) throw new Error('--version is required')
@@ -251,7 +273,7 @@ if (import.meta.main) {
     })
   } else {
     console.error(
-      'usage: publish-npm.ts version | publish --version <v> [--native <dir>] [--out <dir>] [--dry-run]'
+      'usage: publish-npm.ts version [--tag aphrody-v<v>] | publish --version <v> [--native <dir>] [--out <dir>] [--dry-run]'
     )
     process.exit(1)
   }

@@ -34,9 +34,7 @@ jobs:
           fetch-depth: 0
           filter: blob:none
           token: ${{ secrets.APHRODY_SYNC_TOKEN || github.token }}
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      - uses: ./.github/actions/aphrody-setup-bun
       - name: Merge upstream
         env:
           NEXT_SKIP_NATIVE_POSTINSTALL: '1'

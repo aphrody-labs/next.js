@@ -22,6 +22,12 @@ import {
 } from '../scope.ts'
 import { sync } from '../sync-upstream.ts'
 import { pickVersion, shouldSkip } from '../install-native.ts'
+import {
+  consume,
+  consumerManifests,
+  publishable,
+  rewriteConsumer,
+} from '../consume.ts'
 
 const ROOT = join(import.meta.dir, '..', '..', '..')
 
@@ -437,6 +443,28 @@ describe('publish-npm', () => {
     expect(distTag('16.4.0-aphrody.2')).toBe('latest')
   })
 
+  test('a release tag names a version of the checkout', async () => {
+    const { tagVersion } = await import('../publish-npm.ts')
+    expect(
+      tagVersion('aphrody-v16.5.0-canary.5-aphrody.2', '16.5.0-canary.5')
+    ).toBe('16.5.0-canary.5-aphrody.2')
+    expect(
+      tagVersion(
+        'refs/tags/aphrody-v16.5.0-canary.5-aphrody.1',
+        '16.5.0-canary.5'
+      )
+    ).toBe('16.5.0-canary.5-aphrody.1')
+    expect(() =>
+      tagVersion('aphrody-v16.5.0-canary.4-aphrody.1', '16.5.0-canary.5')
+    ).toThrow('packages/next is 16.5.0-canary.5')
+    expect(() =>
+      tagVersion('v16.5.0-canary.5-aphrody.1', '16.5.0-canary.5')
+    ).toThrow()
+    expect(() =>
+      tagVersion('aphrody-v16.5.0-canary.5', '16.5.0-canary.5')
+    ).toThrow()
+  })
+
   test('native package manifest', async () => {
     const { nativeManifest } = await import('../publish-npm.ts')
     const pkg = JSON.parse(
@@ -453,5 +481,81 @@ describe('publish-npm', () => {
     expect(out.name).toBe('@aphrody/next-swc-linux-x64-musl')
     expect(out.main).toBe('next-swc.linux-x64-musl.node')
     expect(out.repository.url).toBe('https://github.com/aphrody-labs/next.js')
+  })
+})
+
+describe('consume', () => {
+  const V = '16.5.0-canary.5-aphrody.1'
+  const names = new Set(['next', '@next/env', '@next/third-parties'])
+
+  test('dependencies and catalogs point at @aphrody, peers and references stay', () => {
+    const pkg: Record<string, any> = {
+      workspaces: {
+        packages: ['apps/*'],
+        catalog: { next: '16.5.0-canary.4', react: '19.2.0' },
+      },
+      catalog: { '@next/env': '16.5.0-canary.4', '@aphrody/next-bun': '0.2.0' },
+      dependencies: { next: 'catalog:', '@next/third-parties': '^16.0.0' },
+      peerDependencies: { next: '>=16' },
+      overrides: { '@next/env': '16.5.0-canary.4' },
+    }
+    const changes = rewriteConsumer(pkg, V, names)
+    expect(changes.map((c) => c.path).sort()).toEqual([
+      'catalog.@next/env',
+      'dependencies.@next/third-parties',
+      'overrides.@next/env',
+      'workspaces.catalog.next',
+    ])
+    expect(pkg.workspaces.catalog.next).toBe(`npm:@aphrody/next@${V}`)
+    expect(pkg.dependencies.next).toBe('catalog:')
+    expect(pkg.peerDependencies.next).toBe('>=16')
+    expect(pkg.catalog['@aphrody/next-bun']).toBe('0.2.0')
+    expect(rewriteConsumer(pkg, V, names)).toEqual([])
+  })
+
+  test('refuses a version missing on npm and writes nothing', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'aphrody-next-consume-'))
+    try {
+      const root = JSON.stringify({
+        workspaces: ['apps/*'],
+        catalog: { next: '16.5.0-canary.4' },
+      })
+      const site = JSON.stringify({ dependencies: { '@next/env': '16.5.0' } })
+      writeFileSync(join(dir, 'package.json'), root)
+      await Bun.write(join(dir, 'apps/site/package.json'), site)
+      expect(consumerManifests(dir).length).toBe(2)
+      const published = new Set([`@aphrody/next@${V}`])
+      const versionsOf = async (n: string) =>
+        [...published].filter((p) => p.startsWith(`${n}@`)).map(() => V)
+      await expect(
+        consume({ root: dir, version: V, write: true, names, versionsOf })
+      ).rejects.toThrow(`@aphrody/next-env@${V}`)
+      expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(root)
+      published.add(`@aphrody/next-env@${V}`)
+      const changes = await consume({
+        root: dir,
+        version: V,
+        write: true,
+        names,
+        versionsOf,
+      })
+      expect(changes.map((c) => c.file).sort()).toEqual([
+        'apps/site/package.json',
+        'package.json',
+      ])
+      expect(
+        JSON.parse(readFileSync(join(dir, 'apps/site/package.json'), 'utf8'))
+          .dependencies['@next/env']
+      ).toBe(`npm:@aphrody/next-env@${V}`)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('the published set is the public packages of this checkout', () => {
+    const set = publishable(ROOT)
+    expect(set.has('next')).toBe(true)
+    expect(set.has('@next/env')).toBe(true)
+    expect(set.has('@vercel/devlow-bench')).toBe(false)
   })
 })

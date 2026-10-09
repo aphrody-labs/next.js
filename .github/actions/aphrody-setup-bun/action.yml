@@ -1,0 +1,33 @@
+name: Setup Bun (aphrody-labs/bun fork)
+description: >-
+  Installs the Bun fork release pinned by package.json#packageManager
+  (bun@<version>, release aphrody-v<version> of aphrody-labs/bun). bun.lock and
+  bunfig.toml are written by that version; upstream Bun is not used.
+runs:
+  using: composite
+  steps:
+    - name: Resolve the fork release
+      id: fork
+      shell: bash
+      run: |
+        manager=$(sed -n 's/.*"packageManager": *"bun@\([^"]*\)".*/\1/p' package.json)
+        [ -n "$manager" ] || { echo "package.json#packageManager must be bun@<version>" >&2; exit 1; }
+        case "${RUNNER_OS}-${RUNNER_ARCH}" in
+          Linux-X64) asset=bun-linux-x64 ;;
+          Linux-ARM64) asset=bun-linux-aarch64 ;;
+          macOS-ARM64) asset=bun-darwin-aarch64 ;;
+          macOS-X64) asset=bun-darwin-x64 ;;
+          Windows-X64) asset=bun-windows-x64 ;;
+          Windows-ARM64) asset=bun-windows-aarch64 ;;
+          *) echo "no fork build for ${RUNNER_OS}-${RUNNER_ARCH}" >&2; exit 1 ;;
+        esac
+        echo "url=https://github.com/aphrody-labs/bun/releases/download/aphrody-v${manager}/${asset}.zip" >> "$GITHUB_OUTPUT"
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-download-url: ${{ steps.fork.outputs.url }}
+    - name: Check the version
+      shell: bash
+      run: |
+        manager=$(sed -n 's/.*"packageManager": *"bun@\([^"]*\)".*/\1/p' package.json)
+        actual=$(bun --version)
+        [ "$actual" = "$manager" ] || { echo "bun --version is $actual, package.json pins $manager" >&2; exit 1; }

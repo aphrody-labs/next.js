@@ -41,11 +41,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      - uses: ./.github/actions/aphrody-setup-bun
       - id: v
-        run: echo "version=$(bun scripts/aphrody/publish-npm.ts version)" >> "$GITHUB_OUTPUT"
+        # A tag push publishes the version the tag names (checked against
+        # packages/next); a manual run takes the next <base>-aphrody.<n> on npm.
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version=$(bun scripts/aphrody/publish-npm.ts version --tag "$GITHUB_REF_NAME")
+          else
+            version=$(bun scripts/aphrody/publish-npm.ts version)
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
   native:
     needs: version
@@ -116,9 +122,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      - uses: ./.github/actions/aphrody-setup-bun
 
       # Linux: upstream's builder image (clang/lld, musl sysroots, old glibc).
       - name: Build in next-swc-builder
@@ -174,18 +178,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      - uses: ./.github/actions/aphrody-setup-bun
       - uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/native
           pattern: next-swc-*
           merge-multiple: true
+      # apps/bundle-analyzer runs `next build` with NEXT_TEST_NATIVE_IGNORE_LOCAL_INSTALL
+      # and no @aphrody/next-swc-* is on npm before the first release: it loads the
+      # bindings built above through NEXT_TEST_NATIVE_DIR, which turbo passes in
+      # loose env mode only.
       - name: Build JS packages
+        env:
+          NEXT_TEST_NATIVE_DIR: ${{ runner.temp }}/native
         run: |
           bun install --frozen-lockfile
-          bun run build
+          bun run build --env-mode loose
       - name: Publish to npm
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -193,6 +201,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
         run: |
           bun test scripts/aphrody/test
+          bun run test-unit-bun
           bun scripts/aphrody/publish-npm.ts publish --version "$VERSION" --native "$RUNNER_TEMP/native" --out "$RUNNER_TEMP/npm" $DRY_RUN
       - name: GitHub release
         if: ${{ !inputs.dry-run }}
