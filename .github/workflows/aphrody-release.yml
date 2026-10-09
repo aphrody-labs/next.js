@@ -1,0 +1,206 @@
+name: Aphrody release
+
+# Builds next-swc (SWC + Turbopack napi bindings) for the 8 upstream platforms,
+# builds the JS packages with Bun, publishes everything to npm as
+# @aphrody/next, @aphrody/next-swc-<platform>, @aphrody/next-env... at one
+# version `<packages/next version>-aphrody.<n>` (scripts/aphrody/publish-npm.ts),
+# and attaches the bindings to the GitHub release aphrody-v<version>.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - 'aphrody-v*'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build and pack without publishing
+        type: boolean
+        default: false
+
+concurrency:
+  group: aphrody-release
+  cancel-in-progress: false
+
+env:
+  NAPI_CLI_VERSION: 3.7.2
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  NEXT_SKIP_NATIVE_POSTINSTALL: '1'
+
+jobs:
+  version:
+    if: github.repository == 'aphrody-labs/next.js'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - id: v
+        run: echo "version=$(bun scripts/aphrody/publish-npm.ts version)" >> "$GITHUB_OUTPUT"
+
+  native:
+    needs: version
+    name: next-swc ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {
+              platform: darwin-arm64,
+              target: aarch64-apple-darwin,
+              runner: macos-15,
+              smoke: true,
+            }
+          - {
+              platform: darwin-x64,
+              target: x86_64-apple-darwin,
+              runner: macos-15,
+            }
+          - {
+              platform: win32-x64-msvc,
+              target: x86_64-pc-windows-msvc,
+              runner: windows-latest,
+              smoke: true,
+            }
+          - {
+              platform: win32-arm64-msvc,
+              target: aarch64-pc-windows-msvc,
+              runner: windows-latest,
+            }
+          - {
+              platform: linux-x64-gnu,
+              target: x86_64-unknown-linux-gnu,
+              runner: ubuntu-latest,
+              docker: true,
+              abi: gnu,
+              arch: x86_64,
+              smoke: true,
+            }
+          - {
+              platform: linux-arm64-gnu,
+              target: aarch64-unknown-linux-gnu,
+              runner: ubuntu-24.04-arm,
+              docker: true,
+              abi: gnu,
+              arch: aarch64,
+              smoke: true,
+            }
+          - {
+              platform: linux-x64-musl,
+              target: x86_64-unknown-linux-musl,
+              runner: ubuntu-latest,
+              docker: true,
+              abi: musl,
+              arch: x86_64,
+            }
+          - {
+              platform: linux-arm64-musl,
+              target: aarch64-unknown-linux-musl,
+              runner: ubuntu-24.04-arm,
+              docker: true,
+              abi: musl,
+              arch: aarch64,
+            }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Linux: upstream's builder image (clang/lld, musl sysroots, old glibc).
+      - name: Build in next-swc-builder
+        if: matrix.docker
+        env:
+          TARGET: ${{ matrix.target }}
+          ABI: ${{ matrix.abi }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          docker build -t next-swc-builder -f scripts/native-builder.Dockerfile .
+          docker run --rm -e CI -e CARGO_INCREMENTAL -e TARGET -e ABI -e ARCH -e BUILD_TASK=build-native-release \
+            -v "$GITHUB_WORKSPACE:/build" -w /build --entrypoint bash next-swc-builder \
+            -xeo pipefail scripts/docker-native-build.sh
+          sudo chown -R "$(id -u):$(id -g)" packages
+
+      - name: Build natively
+        if: ${{ !matrix.docker }}
+        shell: bash
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup target add "${{ matrix.target }}"
+          bun install --frozen-lockfile --ignore-scripts
+          cd packages/next-swc
+          bun x "@napi-rs/cli@${NAPI_CLI_VERSION}" build --platform -p next-napi-bindings --manifest-path ../../Cargo.toml \
+            --release --features image-extended,tracing/release_max_level_trace --no-js -o native --target "${{ matrix.target }}"
+          if [ "$RUNNER_OS" = "macOS" ]; then strip -x native/next-swc.*.node; fi
+
+      # Bun loads the bindings of its own platform; cross-compiled ones are only listed.
+      - name: Smoke-test with Bun
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          SMOKE: ${{ matrix.smoke }}
+        run: |
+          ls -la packages/next-swc/native
+          if [ "$SMOKE" = "true" ]; then
+            bun -e 'const b = require(`./packages/next-swc/native/next-swc.${process.env.PLATFORM}.node`); console.log(Object.keys(b).length, "exports")'
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: next-swc-${{ matrix.platform }}
+          path: packages/next-swc/native/next-swc.${{ matrix.platform }}.node
+          retention-days: 14
+
+  publish:
+    needs: [version, native]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/native
+          pattern: next-swc-*
+          merge-multiple: true
+      - name: Build JS packages
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+      - name: Publish to npm
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+          DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
+        run: |
+          bun test scripts/aphrody/test
+          bun scripts/aphrody/publish-npm.ts publish --version "$VERSION" --native "$RUNNER_TEMP/native" --out "$RUNNER_TEMP/npm" $DRY_RUN
+      - name: GitHub release
+        if: ${{ !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release create "aphrody-v$VERSION" "$RUNNER_TEMP"/native/*.node \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "@aphrody/next $VERSION" \
+            --notes "Next.js $VERSION on Bun (aphrody-labs/next.js). Install: \`bun add next@npm:@aphrody/next@$VERSION\`."

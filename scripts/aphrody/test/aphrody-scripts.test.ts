@@ -260,3 +260,36 @@ describe('install-native', () => {
     expect(shouldSkip({ NEXT_SKIP_NATIVE_POSTINSTALL: '1' })).toBe(true)
   })
 })
+
+describe('publish-npm', () => {
+  test('versions and dist-tags', async () => {
+    const { distTag, nextVersion } = await import('../publish-npm.ts')
+    expect(nextVersion('16.5.0-canary.5', [])).toBe('16.5.0-canary.5-aphrody.1')
+    expect(
+      nextVersion('16.5.0-canary.5', [
+        '16.5.0-canary.5-aphrody.3',
+        '16.5.0-canary.4-aphrody.9',
+      ])
+    ).toBe('16.5.0-canary.5-aphrody.4')
+    expect(distTag('16.5.0-canary.5-aphrody.1')).toBe('canary')
+    expect(distTag('16.4.0-aphrody.2')).toBe('latest')
+  })
+
+  test('native package manifest', async () => {
+    const { nativeManifest } = await import('../publish-npm.ts')
+    const pkg = JSON.parse(
+      readFileSync(
+        join(ROOT, 'crates/next-napi-bindings/npm/linux-x64-musl/package.json'),
+        'utf8'
+      )
+    )
+    const out = nativeManifest(
+      pkg,
+      'linux-x64-musl',
+      '16.5.0-canary.5-aphrody.1'
+    )
+    expect(out.name).toBe('@aphrody/next-swc-linux-x64-musl')
+    expect(out.main).toBe('next-swc.linux-x64-musl.node')
+    expect(out.repository.url).toBe('https://github.com/aphrody-labs/next.js')
+  })
+})

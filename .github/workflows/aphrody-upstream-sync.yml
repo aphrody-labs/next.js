@@ -1,0 +1,48 @@
+name: Aphrody upstream sync
+
+# Merges vercel/next.js canary into the fork's canary every 6 hours with
+# scripts/aphrody/sync-upstream.ts: pnpm -> Bun rewrites merge three-way,
+# pnpm files stay deleted and bun.lock is re-migrated from upstream's
+# pnpm-lock.yaml. A conflict beyond the Bun rewrite fails the run and leaves
+# canary untouched.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: aphrody-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'aphrody-labs/next.js'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      # GITHUB_TOKEN cannot push merges that touch .github/workflows:
+      # APHRODY_SYNC_TOKEN holds a token with the `workflow` scope.
+      - uses: actions/checkout@v4
+        with:
+          ref: canary
+          fetch-depth: 0
+          filter: blob:none
+          token: ${{ secrets.APHRODY_SYNC_TOKEN || github.token }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Merge upstream
+        env:
+          NEXT_SKIP_NATIVE_POSTINSTALL: '1'
+        run: |
+          git config user.name "aphrody-dev"
+          git config user.email "contact@aphrody.com"
+          git remote add upstream https://github.com/vercel/next.js.git
+          bun test scripts/aphrody/test
+          bun scripts/aphrody/sync-upstream.ts --push
