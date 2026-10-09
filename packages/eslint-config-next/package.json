@@ -38,10 +38,10 @@
     "typescript": "6.0.2"
   },
   "scripts": {
-    "dev": "pnpm build",
-    "build": "swc -d dist src && pnpm types",
+    "dev": "bun run build",
+    "build": "swc -d dist src && bun run types",
     "types": "tsc --skipLibCheck --declaration --emitDeclarationOnly --esModuleInterop --declarationDir dist --rootDir src",
-    "pack-for-isolated-tests": "pnpm pack --out ./packed.tgz"
+    "pack-for-isolated-tests": "bun pm pack --filename ./packed.tgz"
   },
   "exports": {
     ".": {

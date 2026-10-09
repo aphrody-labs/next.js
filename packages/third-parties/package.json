@@ -17,10 +17,10 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "node ../../scripts/rm.mjs dist && tsc -d -p tsconfig.json",
+    "build": "bun ../../scripts/rm.mjs dist && tsc -d -p tsconfig.json",
     "dev": "tsc -d -w -p tsconfig.json",
     "typescript": "tsc --noEmit -p tsconfig.json",
-    "pack-for-isolated-tests": "pnpm pack --out ./packed.tgz"
+    "pack-for-isolated-tests": "bun pm pack --filename ./packed.tgz"
   },
   "dependencies": {
     "third-party-capital": "1.0.20"

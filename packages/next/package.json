@@ -90,7 +90,7 @@
     "storybook": "BROWSER=none storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test-storybook": "test-storybook",
-    "pack-for-isolated-tests": "pnpm pack --out ./packed.tgz"
+    "pack-for-isolated-tests": "bun pm pack --filename ./packed.tgz"
   },
   "taskr": {
     "requires": [

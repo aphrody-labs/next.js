@@ -7,7 +7,7 @@
   },
   "types": "index.d.ts",
   "scripts": {
-    "pack-for-isolated-tests": "pnpm pack --out ./packed.tgz"
+    "pack-for-isolated-tests": "bun pm pack --filename ./packed.tgz"
   },
   "dependencies": {
     "@next/rspack-core": "1.0.3"

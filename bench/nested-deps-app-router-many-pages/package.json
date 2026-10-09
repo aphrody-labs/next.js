@@ -1,13 +1,13 @@
 {
   "name": "nested-deps-app-router-many-pages",
   "scripts": {
-    "prepare-bench": "rimraf components app && fuzzponent -d 2 -s 206 -o components && node ./create-pages.mjs",
+    "prepare-bench": "rimraf components app && fuzzponent -d 2 -s 206 -o components && bun ./create-pages.mjs",
     "dev-application": "cross-env NEXT_PRIVATE_LOCAL_WEBPACK=1 next dev",
     "build-application": "cross-env NEXT_PRIVATE_LOCAL_WEBPACK=1 next build",
     "start": "cross-env NEXT_PRIVATE_LOCAL_WEBPACK=1 next start",
-    "dev-nocache": "rimraf .next && pnpm dev-application",
-    "dev-cpuprofile-nocache": "rimraf .next && cross-env NEXT_PRIVATE_LOCAL_WEBPACK=1 node --cpu-prof ../../node_modules/next/dist/bin/next",
-    "build-nocache": "rimraf .next && pnpm build-application"
+    "dev-nocache": "rimraf .next && bun run dev-application",
+    "dev-cpuprofile-nocache": "rimraf .next && cross-env NEXT_PRIVATE_LOCAL_WEBPACK=1 bun --cpu-prof ../../node_modules/next/dist/bin/next",
+    "build-nocache": "rimraf .next && bun run build-application"
   },
   "devDependencies": {
     "fuzzponent": "workspace:*",

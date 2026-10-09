@@ -6,14 +6,16 @@ const { WritableStream } =
   require('node:stream/web') as typeof import('node:stream/web')
 import { getRegistry } from './helpers/get-registry'
 import { getCacheDirectory } from './helpers/get-cache-directory'
+import { swcPackageName } from './aphrody-scope'
 
 const MAX_VERSIONS_TO_CACHE = 8
 
 async function extractBinary(
   outputDirectory: string,
   pkgName: string,
-  tarFileName: string
+  version: string
 ) {
+  const tarFileName = `${pkgName.slice(pkgName.indexOf('/') + 1)}-${version}.tgz`
   const cacheDirectory = getCacheDirectory(
     'next-swc',
     process.env['NEXT_SWC_PATH']
@@ -111,9 +113,8 @@ export async function downloadNativeNextSwc(
   triplesABI: Array<string>
 ) {
   for (const triple of triplesABI) {
-    const pkgName = `@next/swc-${triple}`
-    const tarFileName = `${pkgName.substring(6)}-${version}.tgz`
-    const outputDirectory = path.join(bindingsDirectory, pkgName)
+    // Loaded from `<bindingsDirectory>/@next/swc-<triple>`, downloaded from the fork.
+    const outputDirectory = path.join(bindingsDirectory, `@next/swc-${triple}`)
 
     if (fs.existsSync(outputDirectory)) {
       // if the package is already downloaded a different
@@ -122,7 +123,7 @@ export async function downloadNativeNextSwc(
     }
 
     await fs.promises.mkdir(outputDirectory, { recursive: true })
-    await extractBinary(outputDirectory, pkgName, tarFileName)
+    await extractBinary(outputDirectory, swcPackageName(triple), version)
   }
 }
 
@@ -131,9 +132,7 @@ export async function downloadWasmSwc(
   wasmDirectory: string,
   variant: 'nodejs' | 'web' = 'nodejs'
 ) {
-  const pkgName = `@next/swc-wasm-${variant}`
-  const tarFileName = `${pkgName.substring(6)}-${version}.tgz`
-  const outputDirectory = path.join(wasmDirectory, pkgName)
+  const outputDirectory = path.join(wasmDirectory, `@next/swc-wasm-${variant}`)
 
   if (fs.existsSync(outputDirectory)) {
     // if the package is already downloaded a different
@@ -142,5 +141,9 @@ export async function downloadWasmSwc(
   }
 
   await fs.promises.mkdir(outputDirectory, { recursive: true })
-  await extractBinary(outputDirectory, pkgName, tarFileName)
+  await extractBinary(
+    outputDirectory,
+    swcPackageName(`wasm-${variant}`),
+    version
+  )
 }

@@ -1,0 +1,24 @@
+# Bun settings of the Aphrody fork (pnpm-workspace.yaml upstream; see scripts/aphrody/bunify.ts).
+
+[install]
+# pnpm's layout: isolated store plus pnpm's default public hoisting (eslint.config.mjs imports eslint-mdx).
+linker = "isolated"
+publicHoistPattern = ["*eslint*", "*prettier*"]
+# Same supply-chain delay as upstream's pnpm settings: 48 hours.
+minimumReleaseAge = 172800
+minimumReleaseAgeExcludes = [
+  "@mswjs/interceptors",
+  "@types/react",
+  "@types/react-dom",
+  "babel-plugin-react-compiler",
+  "httpxy",
+  "next",
+  "react",
+  "react-dom",
+  "react-is",
+  "react-server-dom-turbopack",
+  "react-server-dom-webpack",
+  "satori",
+  "scheduler",
+  "turbo",
+]

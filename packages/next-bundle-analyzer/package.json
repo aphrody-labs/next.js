@@ -12,6 +12,6 @@
     "webpack-bundle-analyzer": "4.10.1"
   },
   "scripts": {
-    "pack-for-isolated-tests": "pnpm pack --out ./packed.tgz"
+    "pack-for-isolated-tests": "bun pm pack --filename ./packed.tgz"
   }
 }

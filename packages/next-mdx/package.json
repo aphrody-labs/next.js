@@ -23,6 +23,6 @@
     "source-map": "^0.7.0"
   },
   "scripts": {
-    "pack-for-isolated-tests": "pnpm pack --out ./packed.tgz"
+    "pack-for-isolated-tests": "bun pm pack --filename ./packed.tgz"
   }
 }
