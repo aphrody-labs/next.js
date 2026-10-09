@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Dev Server Bundle Analyzer
  *
@@ -51,7 +51,7 @@ const env = {
 }
 
 try {
-  execSync('npx taskr next_bundle_dev_server', {
+  execSync('bun run taskr next_bundle_dev_server', {
     cwd: nextDir,
     stdio: verbose ? 'inherit' : 'pipe',
     env,

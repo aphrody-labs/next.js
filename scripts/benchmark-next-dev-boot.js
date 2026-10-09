@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Dev Server Boot Time Benchmark
  *
@@ -202,7 +202,7 @@ function setBundled(useBundled) {
     fs.writeFileSync(cliSource, newContent)
     // Rebuild CLI
     console.log(`Rebuilding CLI (${useBundled ? 'bundled' : 'unbundled'})...`)
-    execSync('npx taskr cli', { cwd: nextDir, stdio: 'ignore' })
+    execSync('bun run taskr cli', { cwd: nextDir, stdio: 'ignore' })
   }
 }
 

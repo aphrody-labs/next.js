@@ -65,7 +65,7 @@ const nextBuildWorkflow =
       })
 
       const buildArgs = [turbopack ? 'build-turbopack' : 'build-webpack']
-      let buildShell = command('pnpm', buildArgs, {
+      let buildShell = command('bun', ['run', ...buildArgs], {
         cwd: benchmarkDir,
         env,
       })
@@ -91,7 +91,7 @@ const nextBuildWorkflow =
 
       // run command to start dev server
       const startArgs = [turbopack ? 'start-turbopack' : 'start-webpack']
-      let shell = command('pnpm', startArgs, {
+      let shell = command('bun', ['run', ...startArgs], {
         cwd: benchmarkDir,
         env: serverEnv,
       })
@@ -171,7 +171,7 @@ const nextBuildWorkflow =
         props: { turbopack, page },
       })
 
-      buildShell = command('pnpm', buildArgs, {
+      buildShell = command('bun', ['run', ...buildArgs], {
         cwd: benchmarkDir,
         env,
       })
@@ -189,7 +189,7 @@ const nextBuildWorkflow =
       })
 
       // run command to start dev server
-      shell = command('pnpm', startArgs, {
+      shell = command('bun', ['run', ...startArgs], {
         cwd: benchmarkDir,
         env: serverEnv,
       })
@@ -276,7 +276,7 @@ const nextDevWorkflow =
 
       // run command to start dev server
       const args = [turbopack ? 'dev-turbopack' : 'dev-webpack']
-      let shell = command('pnpm', args, {
+      let shell = command('bun', ['run', ...args], {
         cwd: benchmarkDir,
         env: serverEnv,
       })
@@ -515,7 +515,7 @@ const nextDevWorkflow =
       })
 
       // run command to start dev server
-      shell = command('pnpm', args, {
+      shell = command('bun', ['run', ...args], {
         cwd: benchmarkDir,
         env: serverEnv,
       })

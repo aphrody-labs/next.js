@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 /**
  * Scans the Rust codebase to find unused turbo-tasks items:

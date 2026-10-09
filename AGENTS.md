@@ -1,10 +1,31 @@
 # Next.js Development Guide
 
+<!-- aphrody:bun -->
+
+> **Fork aphrody-labs/next.js.** This checkout installs and runs its tooling with Bun, not pnpm.
+> `scripts/aphrody/bunify.ts` writes this note and the Bun commands below from upstream's
+> AGENTS.md: change the rewrite there, not here.
+>
+> - Install: `bun install` (`bun.lock`; `bunfig.toml`: isolated linker, pnpm's public hoisting,
+>   48 h minimum release age). There is no `pnpm-lock.yaml` nor `pnpm-workspace.yaml`.
+> - Scripts: `bun run <script>`, `bun run --filter=<package> <script>` for one package. Package
+>   binaries: `bun run --cwd packages/next taskr <task>`, `bunx <bin>`.
+> - Unit tests that pass on Bun: `bun run test-unit-bun` (`bun test --isolate` over the files listed
+>   in `scripts/aphrody/bun-unit-tests.txt`). Every other suite (`test-unit`, `test-dev-*`,
+>   `test-start-*`) still runs Jest through `scripts/run-jest.sh`, and `jest.config.js` loads
+>   `next/jest` from the built `packages/next/dist`.
+> - Fork tooling: `bun test scripts/aphrody/test`; upstream merge `bun scripts/aphrody/sync-upstream.ts`;
+>   npm release `scripts/aphrody/publish-npm.ts` (`@aphrody/*` packages, see `APHRODY.md`).
+> - Not verified on this fork: the Jest e2e and integration commands below, and `turbo run build`
+>   on Windows, where `next#build` reports "Taskfile not found!" (see `PLAN.md`).
+
+<!-- /aphrody:bun -->
+
 ## Codebase structure
 
 ### Monorepo Overview
 
-This is a pnpm monorepo containing the Next.js framework and related packages.
+This is a Bun workspaces monorepo containing the Next.js framework and related packages.
 
 ```
 next.js/
@@ -54,59 +75,59 @@ Before editing or creating files in any subdirectory (e.g., `packages/*`, `crate
 
 ```bash
 # Build the Next.js package
-pnpm --filter=next build
+bun run --filter=next build
 
 # Build all JS code
-pnpm build
+bun run build
 
 # Build all JS and Rust code
-pnpm build-all
+bun run build-all
 
 # Run specific task
-pnpm --filter=next exec taskr <task>
+bun run --cwd packages/next taskr <task>
 ```
 
 ## Fast Local Development
 
 For iterative development, default to watch mode plus the explicit test script that matches the mode and bundler being verified.
 
-**Default agent rule:** If you are changing Next.js source or integration tests, start `pnpm --filter=next dev` in a separate terminal session before making edits (unless it is already running). If you skip this, explicitly state why (for example: docs-only, read-only investigation, or CI-only analysis).
+**Default agent rule:** If you are changing Next.js source or integration tests, start `bun run --filter=next dev` in a separate terminal session before making edits (unless it is already running). If you skip this, explicitly state why (for example: docs-only, read-only investigation, or CI-only analysis).
 
 **1. Start watch build in background:**
 
 ```bash
 # Auto-rebuilds on file changes (~1-2s per change vs ~60s full build)
 # Keep this running while you iterate on code
-pnpm --filter=next dev
+bun run --filter=next dev
 ```
 
 **2. Run focused tests with the matching mode script:**
 
 ```bash
 # Development mode with Turbopack
-pnpm test-dev-turbo test/path/to/test.ts
+bun run test-dev-turbo test/path/to/test.ts
 
 # Development mode with Webpack
-pnpm test-dev-webpack test/path/to/test.ts
+bun run test-dev-webpack test/path/to/test.ts
 
 # Production build+start with Turbopack
-pnpm test-start-turbo test/path/to/test.ts
+bun run test-start-turbo test/path/to/test.ts
 
 # Production build+start with Webpack
-pnpm test-start-webpack test/path/to/test.ts
+bun run test-start-webpack test/path/to/test.ts
 ```
 
 **3. When done, kill the background watch process (if you started it).**
 
-**For type errors only:** Use `pnpm --filter=next types` (~10s) instead of `pnpm --filter=next build` (~60s).
+**For type errors only:** Use `bun run --filter=next types` (~10s) instead of `bun run --filter=next build` (~60s).
 
-After the workspace is bootstrapped, prefer `pnpm --filter=next build` when edits are limited to core Next.js files. Use full `pnpm build-all` for branch switches/bootstrap, before CI push, or when changes span multiple packages.
+After the workspace is bootstrapped, prefer `bun run --filter=next build` when edits are limited to core Next.js files. Use full `bun run build-all` for branch switches/bootstrap, before CI push, or when changes span multiple packages.
 
 **Always run a full bootstrap build after switching branches:**
 
 ```bash
 git checkout <branch>
-pnpm build-all   # Sets up outputs for dependent packages (Turborepo dedupes if unchanged)
+bun run build-all   # Sets up outputs for dependent packages (Turborepo dedupes if unchanged)
 ```
 
 ## Bundler Selection
@@ -124,40 +145,40 @@ There is no `--no-turbopack` flag.
 
 ```bash
 # Run specific test file (development mode with Turbopack)
-pnpm test-dev-turbo test/path/to/test.test.ts
+bun run test-dev-turbo test/path/to/test.test.ts
 
 # Run tests matching pattern
-pnpm test-dev-turbo -t "pattern"
+bun run test-dev-turbo -t "pattern"
 
 # Run development tests
-pnpm test-dev-turbo test/development/
+bun run test-dev-turbo test/development/
 ```
 
 **Test commands by mode:**
 
-- `pnpm test-dev-turbo` - Development mode with Turbopack (default)
-- `pnpm test-dev-webpack` - Development mode with Webpack
-- `pnpm test-start-turbo` - Production build+start with Turbopack
-- `pnpm test-start-webpack` - Production build+start with Webpack
+- `bun run test-dev-turbo` - Development mode with Turbopack (default)
+- `bun run test-dev-webpack` - Development mode with Webpack
+- `bun run test-start-turbo` - Production build+start with Turbopack
+- `bun run test-start-webpack` - Production build+start with Webpack
 
 **Other test commands:**
 
-- `pnpm test-unit` - Run unit tests only (fast, no browser)
-- `pnpm new-test` - Generate a new test file from template (interactive)
+- `bun run test-unit` - Run unit tests only (fast, no browser)
+- `bun run new-test` - Generate a new test file from template (interactive)
 
 **Generate tests non-interactively (for AI agents):**
 
-Generating tests using `pnpm new-test` is mandatory.
+Generating tests using `bun run new-test` is mandatory.
 
 ```bash
 # Use --args for non-interactive mode. It is a `turbo gen` flag, so pass it
 # directly, without a `--` separator.
-# Format: pnpm new-test --args <appDir> <name> <type>
+# Format: bun run new-test --args <appDir> <name> <type>
 # appDir: true/false (is this for app directory?)
 # name: test name (e.g. "my-feature")
 # type: e2e | production | development | unit
 
-pnpm new-test --args true my-feature e2e
+bun run new-test --args true my-feature e2e
 ```
 
 **Analyzing test output efficiently:**
@@ -166,7 +187,7 @@ Never re-run the same test suite with different grep filters. Capture output onc
 
 ```bash
 # Run once, save everything
-HEADLESS=true pnpm test-dev-turbo test/path/to/test.ts > /tmp/test-output.log 2>&1
+HEADLESS=true bun run test-dev-turbo test/path/to/test.ts > /tmp/test-output.log 2>&1
 
 # Then analyze without re-running
 grep "●" /tmp/test-output.log            # Failed test names
@@ -178,7 +199,7 @@ tail -5 /tmp/test-output.log             # Summary
 
 **Test writing expectations:**
 
-- **Use `pnpm new-test` to generate new test suites** - it creates proper structure with fixture files
+- **Use `bun run new-test` to generate new test suites** - it creates proper structure with fixture files
 
 - **Normalize filesystem paths in cross-platform assertions.** Windows
   `path.join()` uses backslashes. Normalize paths from mocked filesystem calls,
@@ -231,13 +252,13 @@ tail -5 /tmp/test-output.log             # Summary
 ## Linting and Types
 
 ```bash
-pnpm lint              # Full lint (types, prettier, eslint, ast-grep)
-pnpm lint-fix          # Auto-fix lint issues
-pnpm prettier-fix      # Fix formatting only
-pnpm types             # TypeScript type checking
+bun run lint              # Full lint (types, prettier, eslint, ast-grep)
+bun run lint-fix          # Auto-fix lint issues
+bun run prettier-fix      # Fix formatting only
+bun run types             # TypeScript type checking
 ```
 
-Type-check with the repo's own commands. `pnpm typescript` runs `tsc --noEmit` against the root `tsconfig.json`, which includes `scripts/**/*.js` and loads this repo's type augmentations. A hand-rolled `tsconfig` pointed at a single file misses those augmentations and will report clean while CI fails. For example `NodeJS.ProcessEnv` is declared in `packages/next/types/global.d.ts` with `NODE_ENV` required, so a plain `Record<string, string>` is not a valid `env` for an `execa` call.
+Type-check with the repo's own commands. `bun run typescript` runs `tsc --noEmit` against the root `tsconfig.json`, which includes `scripts/**/*.js` and loads this repo's type augmentations. A hand-rolled `tsconfig` pointed at a single file misses those augmentations and will report clean while CI fails. For example `NodeJS.ProcessEnv` is declared in `packages/next/types/global.d.ts` with `NODE_ENV` required, so a plain `Record<string, string>` is not a valid `env` for an `execa` call.
 
 ## Prefer a Throwaway Worktree
 
@@ -251,7 +272,7 @@ git worktree remove --force /tmp/scratch-work
 
 Always remove the worktree when finished, and prefer removing it in a cleanup path that also runs on failure.
 
-A fresh worktree has no `node_modules`, so `pnpm` and `npx` do not work in it. Symlinking the root one is enough for `prettier`, `eslint`, and `tsc`:
+A fresh worktree has no `node_modules`, so `bun run` and `bunx` do not work in it. Symlinking the root one is enough for `prettier`, `eslint`, and `tsc`:
 
 ```bash
 ln -s /path/to/main/checkout/node_modules /tmp/scratch-work/node_modules
@@ -285,8 +306,8 @@ While you cannot write the full description for the user, you may offer to help 
 Fork PRs run without repository secrets, so deploy tests never run on them. To run those tests, a maintainer adopts the PR: the contributor's commits are re-pushed to a branch in `vercel/next.js` and a replacement PR is opened from there.
 
 ```bash
-pnpm pr-adopt <pr-number>            # adopt
-pnpm pr-adopt <pr-number> --dry-run  # report without pushing
+bun run pr-adopt <pr-number>            # adopt
+bun run pr-adopt <pr-number> --dry-run  # report without pushing
 ```
 
 The script resolves the `vercel/next.js` remote itself, checks out the PR, pushes `adopt/<pr-number>`, and opens a draft PR whose body is the contributor's description verbatim behind an `Adopts #N. Closes #N.` line. The adopted PR inherits the original's base branch; it is never retargeted at `canary`.
@@ -418,13 +439,13 @@ Use skills for conditional, deep workflows. Keep baseline iteration/build/test p
 
 **Build & test output:**
 
-- Capture to file once, then analyze: e.g. `pnpm build 2>&1 | tee /tmp/build.log`
+- Capture to file once, then analyze: e.g. `bun run build 2>&1 | tee /tmp/build.log`
 - Don't re-run the same test command without code changes; re-analyze saved output instead
 
 **Batch edits before building:**
 
 - Group related edits across files, then run one build, not build-per-edit
-- Use `pnpm --filter=next types` (~10s) to check type errors without full rebuild
+- Use `bun run --filter=next types` (~10s) to check type errors without full rebuild
 
 **External API calls (gh, curl):**
 
@@ -442,17 +463,17 @@ Use skills for conditional, deep workflows. Keep baseline iteration/build/test p
 
 ```bash
 # Run exactly what the pre-commit hook runs on your changed files:
-pnpm prettier --with-node-modules --ignore-path .prettierignore --write <files>
-npx eslint --config eslint.config.mjs --fix <files>
+bun run prettier --with-node-modules --ignore-path .prettierignore --write <files>
+bunx eslint --config eslint.config.mjs --fix <files>
 ```
 
 ## Rebuilding Before Running Tests
 
 When running Next.js integration tests, you must rebuild if source files have changed:
 
-- **First run after branch switch/bootstrap (or if unsure)?** → `pnpm build-all`
-- **Edited only core Next.js files (`packages/next/**`) after bootstrap?** → `pnpm --filter=next build`
-- **Edited Next.js code or Turbopack (Rust)?** → `pnpm build-all`
+- **First run after branch switch/bootstrap (or if unsure)?** → `bun run build-all`
+- **Edited only core Next.js files (`packages/next/**`) after bootstrap?** → `bun run --filter=next build`
+- **Edited Next.js code or Turbopack (Rust)?** → `bun run build-all`
 
 ## Development Anti-Patterns
 
@@ -466,7 +487,7 @@ For runtime internals, use focused skills:
 Keep these high-frequency guardrails in mind:
 
 - Reproduce module resolution and bundling issues with the normal mode-specific test command so package resolution is exercised.
-- Validate edge bundling regressions with `pnpm test-start-webpack test/e2e/app-dir/app/standalone.test.ts`
+- Validate edge bundling regressions with `bun run test-start-webpack test/e2e/app-dir/app/standalone.test.ts`
 - Use `__NEXT_SHOW_IGNORE_LISTED=true` when you need full internal stack traces
 
 Core runtime/bundling rules (always apply; skills above expand on these with verification steps and examples):
@@ -481,7 +502,7 @@ Core runtime/bundling rules (always apply; skills above expand on these with ver
 ### Test Gotchas
 
 - **Cache components enables PPR by default**: When `__NEXT_CACHE_COMPONENTS=true`, most app-dir pages use PPR implicitly. Dedicated `ppr-full/` and `ppr/` test suites are mostly `describe.skip` (migrating to cache components). To test PPR codepaths, run normal app-dir e2e tests with `__NEXT_CACHE_COMPONENTS=true` rather than looking for explicit PPR test suites.
-- **Quick smoke testing with toy apps**: For fast feedback, generate a minimal test fixture with `pnpm new-test --args true <name> e2e`, then run the dev server directly with `node packages/next/dist/bin/next dev --port <port>` and `curl --max-time 10`. This avoids the overhead of the full test harness and gives immediate feedback on hangs/crashes.
+- **Quick smoke testing with toy apps**: For fast feedback, generate a minimal test fixture with `bun run new-test --args true <name> e2e`, then run the dev server directly with `node packages/next/dist/bin/next dev --port <port>` and `curl --max-time 10`. This avoids the overhead of the full test harness and gives immediate feedback on hangs/crashes.
 - Mode-specific tests need `skipStart: true` + manual `next.start()` in `beforeAll` after mode check
 - Don't rely on exact log messages - filter by content patterns, find sequences not positions
 - **Snapshot tests vary by env flags**: Tests with inline snapshots can produce different output depending on env flags. When updating snapshots, always run the test with the exact env flags the CI job uses (check `.github/workflows/build_and_test.yml` `afterBuild:` sections). Turbopack resolves `react-dom/server.edge` (no Node APIs like `renderToPipeableStream`), while webpack resolves the `.node` build (has them).
@@ -504,7 +525,7 @@ Core runtime/bundling rules (always apply; skills above expand on these with ver
 
 ### Stale Native Binary
 
-If Turbopack produces unexpected errors after switching branches or pulling, check if `packages/next-swc/native/*.node` is stale. Delete it and run `pnpm install` to get the npm-published binary instead of a locally-built one.
+If Turbopack produces unexpected errors after switching branches or pulling, check if `packages/next-swc/native/*.node` is stale. Delete it and run `bun install` to get the npm-published binary instead of a locally-built one.
 
 ### Documentation Code Blocks
 

@@ -12,6 +12,8 @@
 //                              `packageManager`, lifecycle and scripts
 //   **/package.json            `scripts`: pnpm, node, tsx -> bun (workspace members only)
 //   .husky/pre-commit          pnpm -> bun
+//   AGENTS.md                  pnpm/npx commands -> bun, plus the fork's preamble
+//   scripts/**                 `#!/usr/bin/env node` -> bun; pnpm/npx spawns -> bun (SOURCE_REWRITES)
 //   pnpm-workspace.yaml        removed; its settings live in package.json and bunfig.toml
 
 import { existsSync, readFileSync } from 'node:fs'
@@ -60,6 +62,28 @@ export const ROOT_SCRIPTS: Record<string, string> = {
     'bun scripts/git-configure.mjs && bun scripts/aphrody/install-native.ts',
   clean:
     'bun run --filter "./packages/**" clean && bun -e "for (const d of new Bun.Glob(\\"packages/*/{dist,node_modules}\\").scanSync({ onlyFiles: false })) require(\\"node:fs\\").rmSync(d, { recursive: true, force: true })"',
+}
+
+/** Root scripts the fork adds, inserted after `test-unit`. */
+export const FORK_SCRIPTS: Record<string, string> = {
+  'test-unit-bun': 'bun scripts/aphrody/test-unit-bun.ts',
+}
+
+function withForkScripts(
+  scripts: Record<string, string>
+): Record<string, string> {
+  const out: Record<string, string> = {}
+  let placed = false
+  for (const [name, script] of Object.entries(scripts)) {
+    if (name in FORK_SCRIPTS) continue
+    out[name] = script
+    if (name === 'test-unit') {
+      Object.assign(out, FORK_SCRIPTS)
+      placed = true
+    }
+  }
+  if (!placed) Object.assign(out, FORK_SCRIPTS)
+  return out
 }
 
 function rewriteScripts(
@@ -113,6 +137,7 @@ export function rewriteRootManifest(
         if (name in (out.scripts as object))
           (out.scripts as Record<string, string>)[name] = script
       }
+      out.scripts = withForkScripts(out.scripts as Record<string, string>)
       continue
     }
     if (key === 'packageManager') {
@@ -123,8 +148,8 @@ export function rewriteRootManifest(
   }
   if (!out.workspaces) out.workspaces = WORKSPACES
   const declared = {
-    ...(pkg.dependencies ?? {}),
-    ...(pkg.devDependencies ?? {}),
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
   }
   const missing = ROOT_WORKSPACE_DEPS.filter((name) => !(name in declared))
   if (missing.length) {
@@ -137,8 +162,8 @@ export function rewriteRootManifest(
     )
   }
   if (pnpm.overrides || pkg.overrides)
-    out.overrides = { ...(pkg.overrides ?? {}), ...(pnpm.overrides ?? {}) }
-  const patches = { ...(pkg.patchedDependencies ?? {}) }
+    out.overrides = { ...pkg.overrides, ...pnpm.overrides }
+  const patches: Record<string, string> = { ...pkg.patchedDependencies }
   for (const [key, path] of Object.entries<string>(
     pnpm.patchedDependencies ?? {}
   )) {
@@ -172,9 +197,108 @@ const MEMBER = new RegExp(
 /** Shell files outside package.json whose commands run on Bun. */
 export const SHELL_FILES = ['.husky/pre-commit']
 
+/** Markdown files whose pnpm/npx commands are rewritten, with the fork's preamble after the title. */
+export const DOC_FILES = ['AGENTS.md']
+
+const NOTE_BEGIN = '<!-- aphrody:bun -->'
+const NOTE_END = '<!-- /aphrody:bun -->'
+
+/** Preamble of AGENTS.md: what differs from upstream's pnpm/Node.js instructions. */
+export const AGENTS_NOTE = `${NOTE_BEGIN}
+
+> **Fork aphrody-labs/next.js.** This checkout installs and runs its tooling with Bun, not pnpm.
+> \`scripts/aphrody/bunify.ts\` writes this note and the Bun commands below from upstream's
+> AGENTS.md: change the rewrite there, not here.
+>
+> - Install: \`bun install\` (\`bun.lock\`; \`bunfig.toml\`: isolated linker, pnpm's public hoisting,
+>   48 h minimum release age). There is no \`pnpm-lock.yaml\` nor \`pnpm-workspace.yaml\`.
+> - Scripts: \`bun run <script>\`, \`bun run --filter=<package> <script>\` for one package. Package
+>   binaries: \`bun run --cwd packages/next taskr <task>\`, \`bunx <bin>\`.
+> - Unit tests that pass on Bun: \`bun run test-unit-bun\` (\`bun test --isolate\` over the files listed
+>   in \`scripts/aphrody/bun-unit-tests.txt\`). Every other suite (\`test-unit\`, \`test-dev-*\`,
+>   \`test-start-*\`) still runs Jest through \`scripts/run-jest.sh\`, and \`jest.config.js\` loads
+>   \`next/jest\` from the built \`packages/next/dist\`.
+> - Fork tooling: \`bun test scripts/aphrody/test\`; upstream merge \`bun scripts/aphrody/sync-upstream.ts\`;
+>   npm release \`scripts/aphrody/publish-npm.ts\` (\`@aphrody/*\` packages, see \`APHRODY.md\`).
+> - Not verified on this fork: the Jest e2e and integration commands below, and \`turbo run build\`
+>   on Windows, where \`next#build\` reports "Taskfile not found!" (see \`PLAN.md\`).
+
+${NOTE_END}`
+
+/** Rewrites the commands of a Markdown file (outside the fork's note) for Bun. */
+export function rewriteDocCommands(text: string): string {
+  return text
+    .replace(
+      /\bThis is a pnpm monorepo\b/g,
+      'This is a Bun workspaces monorepo'
+    )
+    .replace(
+      /`pnpm` and `npx` do not work/g,
+      '`bun run` and `bunx` do not work'
+    )
+    .replace(
+      /\bpnpm --filter=next exec taskr\b/g,
+      'bun run --cwd packages/next taskr'
+    )
+    .replace(/\bpnpm install\b/g, 'bun install')
+    .replace(/\bnpx (?=[\w@])/g, 'bunx ')
+    .replace(/\bpnpm (--filter=\S+ )?(?:run |exec )?(?=[\w-])/g, 'bun run $1')
+}
+
+export function rewriteDoc(text: string): string {
+  const begin = text.indexOf(NOTE_BEGIN)
+  const end = begin >= 0 ? text.indexOf(NOTE_END, begin) : -1
+  const body =
+    begin >= 0 && end >= 0
+      ? text.slice(0, begin).replace(/\n+$/, '\n') +
+        text.slice(end + NOTE_END.length).replace(/^\n+/, '\n')
+      : text
+  const out = rewriteDocCommands(body)
+  // After the first `# ` title, or at the top.
+  const title = /^# .*\n/m.exec(out)
+  const at = title ? title.index + title[0].length : 0
+  return out.slice(0, at) + '\n' + AGENTS_NOTE + '\n' + out.slice(at)
+}
+
+/**
+ * Upstream tooling under scripts/ that spawns pnpm or npx, found by the n2b
+ * audit (`aphrody n2b scripts`): literal rewrites per file. Each replacement
+ * never contains its pattern, so the rewrite is idempotent.
+ */
+export const SOURCE_REWRITES: Record<string, [RegExp, string][]> = {
+  'scripts/build-native.ts': [
+    [/\['pnpm', 'run', 'build-native'/g, "['bun', 'run', 'build-native'"],
+  ],
+  'scripts/devlow-bench.mjs': [
+    [/command\('pnpm', (\w+),/g, "command('bun', ['run', ...$1],"],
+  ],
+  'scripts/analyze-dev-server-bundle.js': [[/'npx taskr /g, "'bun run taskr "]],
+  'scripts/benchmark-next-dev-boot.js': [[/'npx taskr /g, "'bun run taskr "]],
+}
+
+/** Scripts under scripts/ (fork tooling in scripts/aphrody excluded) whose node shebang becomes bun. */
+const SCRIPT_SOURCE =
+  /^scripts\/(?!aphrody\/)(?!.*\/node_modules\/).+\.(?:js|mjs|cjs|ts)$/
+
+export function rewriteSource(path: string, text: string): string {
+  let out = text.replace(
+    /^#!\/usr\/bin\/env node(?=\r?\n)/,
+    '#!/usr/bin/env bun'
+  )
+  for (const [pattern, replacement] of SOURCE_REWRITES[path] ?? [])
+    out = out.replace(pattern, replacement)
+  return out
+}
+
 export function isManaged(path: string): boolean {
   const p = path.replaceAll('\\', '/')
-  return p === 'package.json' || MEMBER.test(p) || SHELL_FILES.includes(p)
+  return (
+    p === 'package.json' ||
+    MEMBER.test(p) ||
+    SHELL_FILES.includes(p) ||
+    DOC_FILES.includes(p) ||
+    SCRIPT_SOURCE.test(p)
+  )
 }
 
 export function rewrite(
@@ -187,6 +311,8 @@ export function rewrite(
   if (MEMBER.test(p)) return rewriteMemberManifest(text)
   if (SHELL_FILES.includes(p))
     return text.split('\n').map(rewriteScript).join('\n')
+  if (DOC_FILES.includes(p)) return rewriteDoc(text)
+  if (SCRIPT_SOURCE.test(p)) return rewriteSource(p, text)
   return text
 }
 
@@ -209,7 +335,14 @@ export function lockedVersions(
 }
 
 export function managedFiles(root: string): string[] {
-  const files = ['package.json', ...SHELL_FILES]
+  const files = ['package.json', ...SHELL_FILES, ...DOC_FILES]
+  for (const f of new Bun.Glob('scripts/**/*.{js,mjs,cjs,ts}').scanSync({
+    cwd: root,
+    onlyFiles: true,
+  })) {
+    const p = f.replaceAll('\\', '/')
+    if (SCRIPT_SOURCE.test(p)) files.push(p)
+  }
   for (const glob of WORKSPACES) {
     for (const f of new Bun.Glob(`${glob}/package.json`).scanSync({
       cwd: root,

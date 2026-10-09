@@ -3,11 +3,16 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
+  AGENTS_NOTE,
+  FORK_SCRIPTS,
   isManaged,
   rewrite,
   rewriteRootManifest,
   rewriteScript,
+  rewriteSource,
+  SOURCE_REWRITES,
 } from '../bunify.ts'
+import { LIST, problems, readList } from '../test-unit-bun.ts'
 import {
   aliasSpec,
   check,
@@ -69,6 +74,7 @@ describe('bunify', () => {
     expect(out.scripts).toEqual({
       preinstall: 'bun a.mjs',
       build: 'turbo run build',
+      ...FORK_SCRIPTS,
     })
     expect(out.overrides).toEqual({ postcss: '8.5.23' })
     expect(out.patchedDependencies).toEqual({
@@ -93,6 +99,93 @@ describe('bunify', () => {
     expect(
       rewrite('test/e2e/app/package.json', '{"scripts":{"a":"pnpm x"}}')
     ).toBe('{"scripts":{"a":"pnpm x"}}')
+  })
+
+  test('root manifest: fork scripts after test-unit, once', () => {
+    const upstream = JSON.stringify({
+      name: 'x',
+      scripts: { 'test-types': 'tsc', 'test-unit': 'jest', lint: 'x' },
+    })
+    const once = rewriteRootManifest(upstream)
+    expect(Object.keys(JSON.parse(once).scripts)).toEqual([
+      'test-types',
+      'test-unit',
+      ...Object.keys(FORK_SCRIPTS),
+      'lint',
+    ])
+    expect(rewriteRootManifest(once)).toBe(once)
+  })
+
+  test('AGENTS.md: Bun commands and the fork note, idempotent', () => {
+    const upstream = [
+      '# Next.js Development Guide',
+      '',
+      '## Codebase structure',
+      '',
+      'This is a pnpm monorepo containing the Next.js framework.',
+      '',
+      '```bash',
+      'pnpm --filter=next build',
+      'pnpm build-all   # bootstrap',
+      'pnpm --filter=next exec taskr <task>',
+      'HEADLESS=true pnpm test-dev-turbo test/a.ts',
+      'npx eslint --fix <files>',
+      '```',
+      '',
+      'A fresh worktree has no `node_modules`, so `pnpm` and `npx` do not work in it.',
+      'Delete it and run `pnpm install`. `pnpm typescript` runs `tsc`.',
+      '',
+    ].join('\n')
+    const out = rewrite('AGENTS.md', upstream)
+    expect(out).toStartWith(`# Next.js Development Guide\n\n${AGENTS_NOTE}\n\n`)
+    expect(out).toContain('This is a Bun workspaces monorepo')
+    expect(out).toContain('bun run --filter=next build\n')
+    expect(out).toContain('bun run build-all   # bootstrap')
+    expect(out).toContain('bun run --cwd packages/next taskr <task>')
+    expect(out).toContain('HEADLESS=true bun run test-dev-turbo test/a.ts')
+    expect(out).toContain('bunx eslint --fix <files>')
+    expect(out).toContain('so `bun run` and `bunx` do not work')
+    expect(out).toContain('run `bun install`. `bun run typescript` runs')
+    expect(rewrite('AGENTS.md', out)).toBe(out)
+    expect(isManaged('AGENTS.md')).toBe(true)
+    // The checkout's AGENTS.md keeps no pnpm/npx command outside the note.
+    const agents = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8')
+    expect(agents.replace(AGENTS_NOTE, '')).not.toMatch(/\bpnpm |\bnpx /)
+  })
+
+  test('scripts/: node shebang and pnpm/npx spawns run on Bun', () => {
+    expect(rewriteSource('scripts/a.js', '#!/usr/bin/env node\nx()\n')).toBe(
+      '#!/usr/bin/env bun\nx()\n'
+    )
+    expect(
+      rewriteSource(
+        'scripts/devlow-bench.mjs',
+        "let s = command('pnpm', buildArgs, {"
+      )
+    ).toBe("let s = command('bun', ['run', ...buildArgs], {")
+    expect(
+      rewriteSource(
+        'scripts/build-native.ts',
+        "const c = ['pnpm', 'run', 'build-native', ...a]"
+      )
+    ).toBe("const c = ['bun', 'run', 'build-native', ...a]")
+    expect(
+      rewriteSource(
+        'scripts/benchmark-next-dev-boot.js',
+        "execSync('npx taskr cli')"
+      )
+    ).toBe("execSync('bun run taskr cli')")
+    expect(isManaged('scripts/sync-react.js')).toBe(true)
+    expect(isManaged('scripts/aphrody/bunify.ts')).toBe(false)
+    expect(isManaged('scripts/wasi-test-host/node_modules/x/a.js')).toBe(false)
+    // Every per-file rewrite still finds its upstream pattern, or its result.
+    for (const [file, rules] of Object.entries(SOURCE_REWRITES)) {
+      const text = readFileSync(join(ROOT, file), 'utf8')
+      for (const [pattern, replacement] of rules) {
+        expect(text).not.toMatch(pattern)
+        expect(text).toContain(replacement.split('$1')[0])
+      }
+    }
   })
 
   test('the checkout is bunified', () => {
@@ -234,6 +327,75 @@ describe('sync-upstream', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+
+  test('an upstream edit of a rewritten AGENTS.md line merges without conflict', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'aphrody-next-sync-'))
+    try {
+      const up = join(dir, 'up')
+      const fork = join(dir, 'fork')
+      Bun.spawnSync(['git', 'init', '-q', '-b', 'canary', up])
+      git(up, 'config', 'user.email', 't@t')
+      git(up, 'config', 'user.name', 't')
+      const agents = (cmd: string) =>
+        `# Guide\n\n## Build\n\n\`\`\`bash\n${cmd}\n\`\`\`\n`
+      await Bun.write(join(up, 'AGENTS.md'), agents('pnpm --filter=next build'))
+      await Bun.write(
+        join(up, 'packages/next/src/lib/download-swc.ts'),
+        'await extractBinary(o, swcPackageName(t), v)\n'
+      )
+      git(up, 'add', '.')
+      git(up, 'commit', '-qm', 'base')
+
+      Bun.spawnSync(['git', 'clone', '-q', up, fork])
+      git(fork, 'config', 'user.email', 't@t')
+      git(fork, 'config', 'user.name', 't')
+      git(fork, 'remote', 'add', 'upstream', up)
+      writeFileSync(
+        join(fork, 'AGENTS.md'),
+        rewrite('AGENTS.md', agents('pnpm --filter=next build'))
+      )
+      git(fork, 'commit', '-qam', 'bunify')
+
+      writeFileSync(
+        join(up, 'AGENTS.md'),
+        agents('pnpm --filter=next build --watch')
+      )
+      git(up, 'commit', '-qam', 'upstream change')
+
+      const result = await sync({
+        root: fork,
+        remote: 'upstream',
+        ref: 'upstream/canary',
+        branch: 'canary',
+        fetch: true,
+        push: false,
+        dryRun: false,
+        keepConflicts: false,
+        install: false,
+      })
+      expect(result.status).toBe('merged')
+      expect(readFileSync(join(fork, 'AGENTS.md'), 'utf8')).toBe(
+        rewrite('AGENTS.md', agents('pnpm --filter=next build --watch'))
+      )
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('test-unit-bun', () => {
+  test('the list names existing test files once', async () => {
+    const files = readList(await Bun.file(LIST).text())
+    expect(files.length).toBeGreaterThan(0)
+    expect(problems(ROOT, files)).toEqual([])
+    expect(problems(ROOT, ['a.test.ts', 'a.test.ts', 'b.ts'])).toEqual([
+      'a.test.ts: missing',
+      'a.test.ts: listed twice',
+      'a.test.ts: missing',
+      'b.ts: not a test file',
+      'b.ts: missing',
+    ])
   })
 })
 

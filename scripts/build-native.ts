@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
@@ -11,7 +11,7 @@ const nextSwcDir = path.join(NEXT_DIR, 'packages/next-swc')
 export default async function buildNative(
   buildNativeArgs: string[]
 ): Promise<void> {
-  const buildCommand = ['pnpm', 'run', 'build-native', ...buildNativeArgs]
+  const buildCommand = ['bun', 'run', 'build-native', ...buildNativeArgs]
   logCommand('Build native bindings', buildCommand)
   await execa(buildCommand[0], buildCommand.slice(1), {
     cwd: nextSwcDir,
