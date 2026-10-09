@@ -1,0 +1,22 @@
+diff --git a/index.js b/index.js
+index 4a6cd2ca5dc60bfda28f8f1cc7a9b36b7b1bbfa3..5eaf545271aecca6271545433404841cdd9f4581 100644
+--- a/index.js
++++ b/index.js
+@@ -3,7 +3,7 @@
+ const Script = require('vm').Script;
+ const dirname = require('path').dirname;
+ const rImports = require('rewrite-imports');
+-const req = require('require-like');
++const createRequire = require('module').createRequire;
+ 
+ const fn = 'function*';
+ const box = {};
+@@ -13,7 +13,7 @@ module.exports = function (file, data) {
+ 	Object.assign(box, global);
+ 	box.module = { exports };
+ 	box.exports = exports;
+-	box.require = req(file);
++	box.require = createRequire(file);
+ 
+ 	box.__dirname = dirname(file);
+ 	box.__filename = file;

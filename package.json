@@ -341,6 +341,7 @@
     "playwright-core@1.61.0": "patches/playwright-core@1.61.0.patch",
     "@types/node@20.17.7": "patches/@types__node@20.17.7.patch",
     "@vercel/agent-eval@2.2.1": "patches/@vercel__agent-eval@2.2.1.patch",
-    "@vercel/og@1.0.1": "patches/@vercel__og@1.0.1.patch"
+    "@vercel/og@1.0.1": "patches/@vercel__og@1.0.1.patch",
+    "@taskr/esnext@1.1.0": "patches/@taskr%2Fesnext@1.1.0.patch"
   }
 }
