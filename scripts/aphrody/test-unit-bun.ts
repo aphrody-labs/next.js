@@ -5,7 +5,8 @@
 //
 // The list (scripts/aphrody/bun-unit-tests.txt) holds the files checked one
 // by one with `bun test <file>`; the others still run with Jest
-// (`bun run test-unit`). `--isolate` gives each file a fresh global object:
+// (`bun run test-unit`). bun-test-preload.ts sets the globals Jest leaks into
+// test contexts. `--isolate` gives each file a fresh global object:
 // some files set process.env.NODE_ENV or mock modules for the next ones.
 // A listed file that no longer exists fails the run instead of being skipped.
 
@@ -52,6 +53,8 @@ if (import.meta.main) {
       process.execPath,
       'test',
       '--isolate',
+      '--preload',
+      './scripts/aphrody/bun-test-preload.ts',
       ...args,
       ...files.map((f) => `./${f}`),
     ],

@@ -1,12 +1,13 @@
 # Unit tests of packages/next/src that pass under `bun test`, one file at a time
 # (Bun 1.4.3-aphrody.2, 2026-10-09). Run: bun run test-unit-bun
-# 128 of 155 files; the others still run with Jest (bun run test-unit).
+# 130 of 155 files; the others still run with Jest (bun run test-unit).
 packages/next/src/build/adapter/fallback-shell-runs.test.ts
 packages/next/src/build/analysis/get-page-static-info.test.ts
 packages/next/src/build/bun-build/index.test.ts
 packages/next/src/build/duration-to-string.test.ts
 packages/next/src/build/nft.test.ts
 packages/next/src/build/normalize-catchall-routes.test.ts
+packages/next/src/build/static-paths/app.test.ts
 packages/next/src/build/static-paths/app/extract-pathname-route-param-segments-from-loader-tree.test.ts
 packages/next/src/build/static-paths/utils.test.ts
 packages/next/src/build/validate-app-paths.test.ts
@@ -79,6 +80,7 @@ packages/next/src/server/lib/lru-cache.test.ts
 packages/next/src/server/lib/match-next-data-pathname.test.ts
 packages/next/src/server/lib/mock-request.test.ts
 packages/next/src/server/lib/parse-stack.test.ts
+packages/next/src/server/lib/patch-fetch.test.ts
 packages/next/src/server/lib/release-compression-stream.test.ts
 packages/next/src/server/lib/router-utils/build-data-route.test.ts
 packages/next/src/server/lib/router-utils/build-prefetch-segment-data-route.test.ts
