@@ -20,9 +20,9 @@ for (const binPath of placeholders) {
 
   fs.writeFileSync(
     binPath,
-    `#!/usr/bin/env node
+    `#!/usr/bin/env bun
 console.error(
-  "Local workspace has not been built yet. Run 'pnpm build' first."
+  "Local workspace has not been built yet. Run 'bun run build' first."
 )
 process.exit(1)
 `,

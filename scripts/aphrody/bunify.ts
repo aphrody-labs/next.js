@@ -17,7 +17,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-export const BUN_VERSION = '1.4.3'
+export const BUN_VERSION = '1.4.3-aphrody.2'
 
 /** Workspace globs, from upstream's pnpm-workspace.yaml (kept in sync by the rewrite of package.json). */
 export const WORKSPACES = [
@@ -27,6 +27,7 @@ export const WORKSPACES = [
   'crates/*/js',
   'turbopack/crates/*/js',
   'turbopack/crates/turbopack-tests/tests/execution',
+  'test/*',
 ]
 
 /** Files upstream has and the fork deletes. */

@@ -29,11 +29,11 @@ done
 
 if [ ! -z $HAS_CONFLICTING_DEP ] || [ ! -d "$PROJECT_DIR/node_modules" ];then
   cd $PROJECT_DIR
-  pnpm i --ignore-workspace --no-lockfile
+  bun install --no-save
   for dep in ${CONFLICTING_DEPS[@]};do 
     rm -rf node_modules/$dep
   done
 fi
 
 cd $START_DIR
-pnpm next $@
+bun next $@

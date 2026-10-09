@@ -10,7 +10,7 @@ echo "=== Stats Benchmark Config Test ==="
 
 # Check Next.js is built
 if [ ! -d "packages/next/dist" ]; then
-  echo "ERROR: Next.js not built. Run 'pnpm build' first."
+  echo "ERROR: Next.js not built. Run 'bun run build' first."
   exit 1
 fi
 
@@ -35,14 +35,14 @@ cat next.config.js
 echo ""
 
 # Link local Next.js
-node -e "
+bun -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json'));
 pkg.dependencies.next = 'file:$REPO_ROOT/packages/next';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
 "
 echo "Installing dependencies..."
-pnpm install --ignore-scripts 2>/dev/null
+bun install --no-save 2>/dev/null
 
 # Test Turbopack dev (the failing scenario)
 echo ""
@@ -50,7 +50,7 @@ echo "=== Test 1: Turbopack dev (default, no flag) ==="
 PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
 
 rm -rf .next
-NEXT_TELEMETRY_DISABLED=1 timeout 30 pnpm next dev --port $PORT > /tmp/turbo.log 2>&1 &
+NEXT_TELEMETRY_DISABLED=1 timeout 30 bun next dev --port $PORT > /tmp/turbo.log 2>&1 &
 PID=$!
 sleep 12
 
@@ -75,7 +75,7 @@ echo "=== Test 2: Webpack dev (--webpack flag) ==="
 PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
 
 rm -rf .next
-NEXT_TELEMETRY_DISABLED=1 timeout 30 pnpm next dev --webpack --port $PORT > /tmp/webpack.log 2>&1 &
+NEXT_TELEMETRY_DISABLED=1 timeout 30 bun next dev --webpack --port $PORT > /tmp/webpack.log 2>&1 &
 PID=$!
 sleep 12
 
@@ -91,7 +91,7 @@ fi
 echo ""
 echo "=== Test 3: Turbopack build ==="
 rm -rf .next
-if NEXT_TELEMETRY_DISABLED=1 pnpm next build 2>&1 | head -20; then
+if NEXT_TELEMETRY_DISABLED=1 bun next build 2>&1 | head -20; then
   echo "OK: Turbopack build completed"
 else
   echo "FAIL: Turbopack build failed"
@@ -102,7 +102,7 @@ fi
 echo ""
 echo "=== Test 4: Webpack build (--webpack flag) ==="
 rm -rf .next
-if NEXT_TELEMETRY_DISABLED=1 pnpm next build --webpack 2>&1 | head -20; then
+if NEXT_TELEMETRY_DISABLED=1 bun next build --webpack 2>&1 | head -20; then
   echo "OK: Webpack build completed"
 else
   echo "FAIL: Webpack build failed"

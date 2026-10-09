@@ -611,12 +611,7 @@ Or, run this command with no arguments to use the most recently published versio
   } else {
     console.log('Installing dependencies...')
 
-    const installSubprocess = execa('pnpm', [
-      'install',
-      // Pnpm freezes the lockfile by default in CI.
-      // However, we just changed versions so the lockfile is expected to be changed.
-      '--no-frozen-lockfile',
-    ])
+    const installSubprocess = execa('bun', ['install'])
     if (installSubprocess.stdout) {
       installSubprocess.stdout.pipe(process.stdout)
     }
@@ -632,7 +627,7 @@ Or, run this command with no arguments to use the most recently published versio
     }
 
     console.log('Building vendored React files...\n')
-    const nccSubprocess = execa('pnpm', ['ncc-compiled'], {
+    const nccSubprocess = execa('bun', ['run', 'ncc-compiled'], {
       cwd: path.join(cwd, 'packages', 'next'),
     })
     if (nccSubprocess.stdout) {
@@ -682,8 +677,8 @@ Or, run this command with no arguments to use the most recently published versio
       `
 To finish upgrading, complete the following steps:
 
-- Install the updated dependencies: pnpm install
-- Build the vendored React files: (inside packages/next dir) pnpm ncc-compiled
+- Install the updated dependencies: bun install
+- Build the vendored React files: (inside packages/next dir) bun run ncc-compiled
 
 Or run this command again without the --no-install flag to do both automatically.
     `

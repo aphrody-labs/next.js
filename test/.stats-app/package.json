@@ -10,5 +10,5 @@
   "engines": {
     "node": ">=20.9.0"
   },
-  "packageManager": "pnpm@9.6.0"
+  "packageManager": "bun@1.4.3-aphrody.2"
 }

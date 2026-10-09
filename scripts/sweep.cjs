@@ -46,14 +46,7 @@ function removeDirs(title, prefix) {
 }
 removeDirs('Remove incremental dirs', '')
 
-exec('Prune pnpm', 'pnpm prune', {
-  env: {
-    ...process.env,
-    // We don't need to download the native build as we are not going to use it
-    NEXT_SKIP_NATIVE_POSTINSTALL: '1',
-  },
-})
-exec('Prune pnpm store', 'pnpm store prune')
+exec('Prune bun cache', 'bun pm cache rm')
 
 if (!sweepInstalled) exec('Install cargo-sweep', 'cargo install cargo-sweep')
 

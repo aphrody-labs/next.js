@@ -42,7 +42,7 @@ const argv = yargs(hideBin(process.argv))
   .option('build', {
     type: 'boolean',
     default: true,
-    description: 'Run the Next.js build step (`pnpm i` and `pnpm build`).',
+    description: 'Run the Next.js build step (`bun install` and `bun run build`).',
   })
   .option('build-native', {
     alias: 'native-build',
@@ -138,8 +138,8 @@ async function main(): Promise<void> {
   INFO(`[x] Next.js Source: ${NEXT_PACKAGES}`)
 
   if (build) {
-    exec('Install Next.js build dependencies', 'pnpm i')
-    exec('Build Next.js', 'pnpm run build')
+    exec('Install Next.js build dependencies', 'bun install')
+    exec('Build Next.js', 'bun run build')
   }
 
   if (buildNativeEnabled) {

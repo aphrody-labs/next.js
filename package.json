@@ -8,7 +8,8 @@
     "bench/*",
     "crates/*/js",
     "turbopack/crates/*/js",
-    "turbopack/crates/turbopack-tests/tests/execution"
+    "turbopack/crates/turbopack-tests/tests/execution",
+    "test/*"
   ],
   "scripts": {
     "new-error": "turbo gen error",
@@ -308,7 +309,7 @@
   "engines": {
     "node": ">=20.9.0"
   },
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.3-aphrody.2",
   "overrides": {
     "postcss": "8.5.23",
     "webpack": "5.98.0",

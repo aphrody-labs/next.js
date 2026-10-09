@@ -9,7 +9,7 @@
     "type": "git",
     "url": "git+https://github.com/vercel/next.js.git"
   },
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "bun@1.4.3-aphrody.2",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "exports": {
@@ -23,9 +23,9 @@
     "lib"
   ],
   "scripts": {
-    "build": "pnpm run --filter @next/rspack-binding build",
-    "build:debug": "pnpm run --filter @next/rspack-binding build:debug",
-    "change-npm-name": "node ./change-npm-name.js"
+    "build": "bun run --filter @next/rspack-binding build",
+    "build:debug": "bun run --filter @next/rspack-binding build:debug",
+    "change-npm-name": "bun ./change-npm-name.js"
   },
   "dependencies": {
     "@rspack/core": "2.0.4",
