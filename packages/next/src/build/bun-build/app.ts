@@ -5,14 +5,16 @@
 //                                    every "use client" module becomes a client reference
 //   ssr      server/bun-app-ssr.js   the client modules for server rendering, required by
 //                                    id through `__webpack_require__`
+//   actions  server/bun-app-actions.js  every Server Action module ("rsc" layer), exported
+//                                    by action id; the module id of every page's worker
 //   browser  static/chunks/**        main-app plus one entry per client module, which React
 //                                    loads through `__webpack_chunk_load__`
 //
 // and the manifests next-server reads: server/app/*_client-reference-manifest.js,
 // server/app-paths-manifest.json and server/server-reference-manifest.{js,json}.
 //
-// Not supported yet (rejected with an error): Server Actions and "use cache",
-// cacheComponents, metadata files (icon, opengraph-image, sitemap, …).
+// Not supported yet (rejected with an error): "use cache", cacheComponents,
+// metadata files (icon, opengraph-image, sitemap, …).
 //
 // Kept in step with packages/bun-next/lib/build-app.js of aphrody-labs/bun.
 
@@ -42,6 +44,8 @@ const FORCE_TRANSPILE =
 const NODE_MODULES = /[/\\]node_modules[/\\]/
 const EMPTY_NAMESPACE = 'next-bun-empty'
 const SSR_RUNTIME = 'bun-app-ssr.js'
+const ACTIONS_RUNTIME = 'bun-app-actions.js'
+const ACTIONS_MODULE_ID = 'bun-app-actions'
 const EXTERNAL_FILE = /next[/\\]dist(?:[/\\]esm)?[/\\].*\.external(?:\.js)?$/
 const ESM_DIST = /([/\\]next[/\\]dist)[/\\]esm([/\\])/
 const DECLARATION =
@@ -166,12 +170,34 @@ export async function buildApp(
 
   const generated = entriesDir + path.sep
   const relativeToDir = (file: string) => posix(path.relative(dir, file))
-  const fail = (file: string, info: { actionIds?: object }) => {
-    if (info.actionIds && Object.keys(info.actionIds).length > 0) {
-      throw new BunBuildUnsupportedError(
-        `Server Actions and "use cache" (${relativeToDir(file)})`
-      )
+  // Server Action modules by file: their `{ [id]: exportedName }` and the layers importing them.
+  const actionModules = new Map<
+    string,
+    { file: string; ids: Record<string, string>; fromServer: boolean }
+  >()
+  const collectActions = (
+    file: string,
+    code: string,
+    info: { actionIds?: Record<string, string | { name: string }> },
+    layer: Layer
+  ) => {
+    if (!info.actionIds || Object.keys(info.actionIds).length === 0) return
+    if (code.includes('private-next-rsc-cache-wrapper')) {
+      throw new BunBuildUnsupportedError(`"use cache" (${relativeToDir(file)})`)
     }
+    let mod = actionModules.get(file)
+    if (!mod) {
+      // Newer releases map an id to `{ name, loc }`, older ones to the export name.
+      const ids = Object.fromEntries(
+        Object.entries(info.actionIds).map(([id, action]) => [
+          id,
+          typeof action === 'object' ? action.name : action,
+        ])
+      )
+      mod = { file, ids, fromServer: false }
+      actionModules.set(file, mod)
+    }
+    if (layer === 'rsc') mod.fromServer = true
   }
 
   // Route entries: next-app-loader's code, as webpack would compile it.
@@ -365,7 +391,9 @@ export async function buildApp(
           if (
             isServer &&
             request.startsWith('.') &&
-            path.posix.basename(request) === SSR_RUNTIME
+            [SSR_RUNTIME, ACTIONS_RUNTIME].includes(
+              path.posix.basename(request)
+            )
           ) {
             return { path: request, external: true }
           }
@@ -399,7 +427,7 @@ export async function buildApp(
 
   /** next-swc-loader for `layer`; the rsc layer also turns client boundaries into references. */
   const clientModules = new Map<string, ClientModule>()
-  const swcLayer = (layer: Layer): BunPlugin => ({
+  const swcLayer = (layer: Layer, collect = true): BunPlugin => ({
     name: `next-app-swc-${layer}`,
     setup(build) {
       if (layer !== 'browser') {
@@ -421,7 +449,7 @@ export async function buildApp(
         }
         const code = await swcCode(args.path, source, LAYERS[layer])
         const info = getRSCModuleInformation(code, layer === 'rsc')
-        fail(args.path, info)
+        if (collect) collectActions(args.path, code, info, layer)
         if (layer !== 'rsc' || info.type !== 'client') {
           return { contents: code, loader: 'js' }
         }
@@ -531,6 +559,7 @@ export async function buildApp(
       ),
       `};`,
       `exports.__next_bun_require = function (id) {`,
+      `  if (id === ${JSON.stringify(ACTIONS_MODULE_ID)}) return require(${JSON.stringify('./' + ACTIONS_RUNTIME)});`,
       `  if (id.startsWith("rsc:")) {`,
       `    const proxy = globalThis.__next_bun_rsc && globalThis.__next_bun_rsc.get(id.slice(4));`,
       `    if (proxy === undefined) throw new Error("Bun.build: client reference " + id + " is not loaded");`,
@@ -556,6 +585,46 @@ export async function buildApp(
   })
   if (!ssr.success) {
     throw new AggregateError(ssr.logs, 'Bun.build: App Router SSR build failed')
+  }
+
+  // actions: the Server Action modules found by the rsc and ssr passes, compiled for
+  // the server and exported by action id, which is what React reads from the module.
+  if (actionModules.size > 0) {
+    const actionsEntry = path.join(entriesDir, 'actions', ACTIONS_RUNTIME)
+    const lines = [`"use strict";`]
+    ;[...actionModules.values()].forEach((mod, i) => {
+      lines.push(`const m${i} = require(${JSON.stringify(mod.file)});`)
+      for (const [id, name] of Object.entries(mod.ids)) {
+        lines.push(
+          `Object.defineProperty(exports, ${JSON.stringify(id)}, { enumerable: true, get: () => m${i}[${JSON.stringify(name)}] });`
+        )
+      }
+    })
+    write(actionsEntry, lines.join('\n') + '\n')
+    const knownClientModules = clientModules.size
+    const actions = await Bun.build({
+      entrypoints: [actionsEntry],
+      root: path.dirname(actionsEntry),
+      outdir: serverDir,
+      naming: '[dir]/[name].[ext]',
+      target: 'node',
+      format: 'cjs',
+      conditions: ['react-server'],
+      define: defines('server'),
+      plugins: [resolver('rsc'), swcLayer('rsc', false), ...plugins],
+      throw: false,
+    })
+    if (!actions.success) {
+      throw new AggregateError(
+        actions.logs,
+        'Bun.build: Server Actions build failed'
+      )
+    }
+    if (clientModules.size !== knownClientModules) {
+      throw new BunBuildUnsupportedError(
+        'Client Components imported only by Server Action modules'
+      )
+    }
   }
 
   // Which stylesheets and client modules each layout/page pulls in on the server.
@@ -648,6 +717,7 @@ export async function buildApp(
     segmentCssEntry.set(segment, name)
   }
 
+  const actionCount = actionModules.size
   const browser = await Bun.build({
     entrypoints: browserEntries,
     root: browserEntriesDir,
@@ -670,6 +740,11 @@ export async function buildApp(
     throw new AggregateError(
       browser.logs,
       'Bun.build: App Router client build failed'
+    )
+  }
+  if (actionModules.size !== actionCount) {
+    throw new BunBuildUnsupportedError(
+      'Server Actions imported only by the browser build'
     )
   }
 
@@ -775,8 +850,23 @@ export async function buildApp(
     null,
     2
   )
+  // Every page can run every action: they all share one actions module.
+  const pageRoutes = routes.filter((route) => !route.name.endsWith('/route'))
+  const serverActions: Record<string, object> = {}
+  for (const mod of actionModules.values()) {
+    const filename = relativeToDir(mod.file)
+    for (const [id, exportedName] of Object.entries(mod.ids)) {
+      const workers: Record<string, { moduleId: string; async: boolean }> = {}
+      const layer: Record<string, string> = {}
+      for (const route of pageRoutes) {
+        workers[route.name] = { moduleId: ACTIONS_MODULE_ID, async: false }
+        layer[route.name] = mod.fromServer ? 'rsc' : 'action-browser'
+      }
+      serverActions[id] = { workers, layer, filename, exportedName }
+    }
+  }
   const serverManifest = {
-    node: {},
+    node: serverActions,
     edge: {},
     encryptionKey: ctx.encryptionKey,
   }

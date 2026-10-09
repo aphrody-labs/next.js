@@ -11,8 +11,8 @@
 //
 // Scope: Pages Router on the Node.js runtime, global CSS and CSS modules (Bun's
 // CSS bundler, plus the Bun plugins given to `configureBunBuild`, e.g.
-// Tailwind CSS). The App Router (Server and Client Components, route handlers)
-// is compiled by app.ts. Server Actions, instrumentation, the edge runtime and
+// Tailwind CSS). The App Router (Server and Client Components, Server Actions,
+// route handlers) is compiled by app.ts. "use cache", instrumentation, the edge runtime and
 // `experimental.parallelServerCompiles` are rejected.
 
 import { readFileSync, rmSync } from 'fs'
