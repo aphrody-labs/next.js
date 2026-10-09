@@ -15,9 +15,9 @@
  *   --webpack         Use Webpack
  */
 
-const { spawn, execSync } = require('child_process')
-const path = require('path')
-const fs = require('fs')
+const { spawn, execSync } = require('node:child_process')
+const path = require('node:path')
+const fs = require('node:fs')
 
 // Parse arguments
 const args = process.argv.slice(2)

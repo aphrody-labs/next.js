@@ -24,8 +24,8 @@
                            repeatable, `**` allows any branch
 */
 
-const fs = require('fs/promises')
-const path = require('path')
+const fs = require('node:fs/promises')
+const path = require('node:path')
 const execa = require('execa')
 const semver = require('semver')
 const { readReleaseVersion } = require('./release-version')

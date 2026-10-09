@@ -5,8 +5,8 @@
  This prevents busting the turbo cache un-necessarily due
  to bumping the version in the repo's package.json files
 */
-const path = require('path')
-const fs = require('fs/promises')
+const path = require('node:path')
+const fs = require('node:fs/promises')
 
 const cwd = process.cwd()
 const NORMALIZED_VERSION = '0.0.0'

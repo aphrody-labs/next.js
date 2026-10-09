@@ -5,8 +5,8 @@
 // reads this stamp to derive the actions/cache key for the compiled
 // next-swc native binary without re-hashing everything.
 
-const fs = require('fs')
-const path = require('path')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const stamp = path.resolve(__dirname, '..', 'target', '.rust-fingerprint')
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
-const { execFileSync, spawn } = require('child_process')
-const fs = require('fs/promises')
-const path = require('path')
+const { execFileSync, spawn } = require('node:child_process')
+const fs = require('node:fs/promises')
+const path = require('node:path')
 
 const OWNER = 'vercel'
 const REPO = 'next.js'

@@ -12,10 +12,10 @@
  * sync with the filesystem. CI runs this script followed by `git diff
  * --exit-code` to ensure the committed lists are up to date.
  */
-import { execFileSync } from 'child_process'
-import { writeFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { execFileSync } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..')

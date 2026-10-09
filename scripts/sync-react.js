@@ -1,9 +1,9 @@
 // @ts-check
 
-const path = require('path')
-const fsp = require('fs/promises')
-const process = require('process')
-const { pathToFileURL } = require('url')
+const path = require('node:path')
+const fsp = require('node:fs/promises')
+const process = require('node:process')
+const { pathToFileURL } = require('node:url')
 const execa = require('execa')
 const { Octokit } = require('octokit')
 const SemVer = require('semver')

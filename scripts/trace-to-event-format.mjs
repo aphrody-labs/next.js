@@ -1,7 +1,7 @@
-import { createReadStream, createWriteStream } from 'fs'
-import { createInterface } from 'readline'
-import path from 'path'
-import { EOL } from 'os'
+import { createReadStream, createWriteStream } from 'node:fs'
+import { createInterface } from 'node:readline'
+import path from 'node:path'
+import { EOL } from 'node:os'
 
 const createEvent = (trace, ph, cat) => ({
   name: trace.name,

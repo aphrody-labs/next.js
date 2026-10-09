@@ -1,7 +1,7 @@
 // @ts-check
-const { promisify } = require('util')
+const { promisify } = require('node:util')
 const { Octokit } = require('octokit')
-const { exec: execOriginal } = require('child_process')
+const { exec: execOriginal } = require('node:child_process')
 const {
   createSignedCommit,
   upsertBranchRef,

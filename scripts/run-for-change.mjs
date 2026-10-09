@@ -1,6 +1,6 @@
 // @ts-check
-import { promisify } from 'util'
-import { exec as execOrig, spawn } from 'child_process'
+import { promisify } from 'node:util'
+import { exec as execOrig, spawn } from 'node:child_process'
 import { getDiffRevision, getGitInfo } from './git-info.mjs'
 
 const exec = promisify(execOrig)

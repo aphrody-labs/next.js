@@ -1,7 +1,7 @@
 // This script must be run with tsx
 
-const { existsSync, rmSync, readdirSync } = require('fs')
-const { join } = require('path')
+const { existsSync, rmSync, readdirSync } = require('node:fs')
+const { join } = require('node:path')
 const { NEXT_DIR, exec, logCommand } = require('./pack-util')
 
 const sweepInstalled = existsSync(`${process.env.CARGO_HOME}/bin/cargo-sweep`)

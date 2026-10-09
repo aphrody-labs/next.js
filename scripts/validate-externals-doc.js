@@ -1,5 +1,5 @@
-const fs = require('fs')
-const path = require('path')
+const fs = require('node:fs')
+const path = require('node:path')
 const JSON5 = require('next/dist/compiled/json5')
 
 const serverExternals = JSON5.parse(

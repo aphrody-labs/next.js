@@ -3,7 +3,7 @@
  * Analyze a CPU profile to identify hot modules
  */
 
-const fs = require('fs')
+const fs = require('node:fs')
 
 const profilePath = process.argv[2]
 if (!profilePath) {

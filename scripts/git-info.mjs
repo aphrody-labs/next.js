@@ -1,7 +1,7 @@
 // @ts-check
-import fs from 'fs/promises'
-import { promisify } from 'util'
-import { exec as execOrig } from 'child_process'
+import fs from 'node:fs/promises'
+import { promisify } from 'node:util'
+import { exec as execOrig } from 'node:child_process'
 
 const exec = promisify(execOrig)
 

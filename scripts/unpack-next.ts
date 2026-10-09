@@ -1,8 +1,8 @@
 // This script must be run with tsx
 
 import { NEXT_DIR, exec } from './pack-util'
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const TARBALLS = `${NEXT_DIR}/tarballs`
 

@@ -1,9 +1,9 @@
 // the script must be run with tsx
 
-import fs from 'fs'
+import fs from 'node:fs'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
-import path from 'path'
+import path from 'node:path'
 
 import { NEXT_DIR, exec, execFn, packageFiles } from './pack-util.js'
 import buildNative from './build-native.js'
@@ -42,7 +42,8 @@ const argv = yargs(hideBin(process.argv))
   .option('build', {
     type: 'boolean',
     default: true,
-    description: 'Run the Next.js build step (`bun install` and `bun run build`).',
+    description:
+      'Run the Next.js build step (`bun install` and `bun run build`).',
   })
   .option('build-native', {
     alias: 'native-build',

@@ -1,8 +1,8 @@
 // @ts-check
-import fs from 'fs/promises'
+import fs from 'node:fs/promises'
 import execa from 'execa'
-import { createRequire } from 'module'
-import path from 'path'
+import { createRequire } from 'node:module'
+import path from 'node:path'
 import { getDiffRevision, getGitInfo } from './git-info.mjs'
 
 const require = createRequire(import.meta.url)

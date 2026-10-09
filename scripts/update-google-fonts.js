@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-const fs = require('fs/promises')
-const path = require('path')
+const fs = require('node:fs/promises')
+const path = require('node:path')
 
 ;(async () => {
   const { familyMetadataList } = await fetch(

@@ -17,9 +17,9 @@ const chalk = {
 }
 
 if (process.env.LOG_REQUIRE) {
-  const originalCompile = require('module').prototype._compile
+  const originalCompile = require('node:module').prototype._compile
 
-  require('module').prototype._compile = function (_content, filename) {
+  require('node:module').prototype._compile = function (_content, filename) {
     let parent = currentNode
 
     currentNode = {
@@ -81,9 +81,9 @@ function prettyPrint(
 }
 
 if (process.env.LOG_COMPILE) {
-  const originalCompile = require('module').prototype._compile
+  const originalCompile = require('node:module').prototype._compile
   const currentDir = process.cwd()
-  require('module').prototype._compile = function (content, filename) {
+  require('node:module').prototype._compile = function (content, filename) {
     const strippedFilename = filename.replace(currentDir, '')
     console.time(`Module '${strippedFilename}' compiled`)
     const result = originalCompile.apply(this, arguments)
@@ -93,26 +93,28 @@ if (process.env.LOG_COMPILE) {
 }
 
 const appDir = process.argv[2]
-const absoluteAppDir = require('path').resolve(appDir)
+const absoluteAppDir = require('node:path').resolve(appDir)
 process.chdir(absoluteAppDir)
 
 let readFileCount = 0
 let readFileSyncCount = 0
 
 if (process.env.LOG_READFILE) {
-  const originalReadFile = require('fs').readFile
-  const originalReadFileSync = require('fs').readFileSync
+  const originalReadFile = require('node:fs').readFile
+  const originalReadFileSync = require('node:fs').readFileSync
 
-  require('fs').readFile = function (path, options, callback) {
+  require('node:fs').readFile = function (path, options, callback) {
     readFileCount++
-    console.log(`readFile: ${require('path').relative(absoluteAppDir, path)}`)
+    console.log(
+      `readFile: ${require('node:path').relative(absoluteAppDir, path)}`
+    )
     return originalReadFile.apply(this, arguments)
   }
 
-  require('fs').readFileSync = function (path, options) {
+  require('node:fs').readFileSync = function (path, options) {
     readFileSyncCount++
     console.log(
-      `readFileSync: ${require('path').relative(absoluteAppDir, path)}`
+      `readFileSync: ${require('node:path').relative(absoluteAppDir, path)}`
     )
     return originalReadFileSync.apply(this, arguments)
   }
@@ -128,7 +130,7 @@ if (process.env.LOG_READFILE) {
   console.log(`readFileCount: ${readFileCount + readFileSyncCount}`)
 }
 
-const path = require('path')
+const path = require('node:path')
 
 const distDir = '.next'
 
@@ -146,7 +148,7 @@ const nextServer = new NextServer({
 
 const requestHandler = nextServer.getRequestHandler()
 
-require('http')
+require('node:http')
   .createServer((req, res) => {
     console.time('next-request')
     readFileCount = 0
@@ -192,6 +194,6 @@ require('http')
             })
           }
         }
-        require('process').exit(0)
+        require('node:process').exit(0)
       })
   })

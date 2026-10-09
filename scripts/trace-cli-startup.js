@@ -9,9 +9,9 @@
  *   node scripts/trace-cli-startup.js [--command=dev|build|--help]
  */
 
-const inspector = require('inspector')
-const fs = require('fs')
-const path = require('path')
+const inspector = require('node:inspector')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const args = process.argv.slice(2)
 const getArg = (name, defaultValue) => {
@@ -36,7 +36,7 @@ const session = new inspector.Session()
 session.connect()
 
 // Track module loading via require hook
-const Module = require('module')
+const Module = require('node:module')
 const originalRequire = Module.prototype.require
 const loadedModules = []
 const moduleLoadTimes = []

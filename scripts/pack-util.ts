@@ -3,11 +3,11 @@ import {
   execFileSync,
   spawn,
   ExecSyncOptionsWithStringEncoding,
-} from 'child_process'
-import { existsSync } from 'fs'
+} from 'node:child_process'
+import { existsSync } from 'node:fs'
 import globOrig from 'glob'
-import { join } from 'path'
-import { promisify } from 'util'
+import { join } from 'node:path'
+import { promisify } from 'node:util'
 
 export const glob = promisify(globOrig)
 

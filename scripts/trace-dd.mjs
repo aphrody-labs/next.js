@@ -1,6 +1,6 @@
-import { createReadStream } from 'fs'
-import { createInterface } from 'readline'
-import path from 'path'
+import { createReadStream } from 'node:fs'
+import { createInterface } from 'node:readline'
+import path from 'node:path'
 import Tracer from 'dd-trace'
 import flat from 'flat'
 

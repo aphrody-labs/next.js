@@ -1,6 +1,6 @@
-const { execSync, execFileSync, spawn } = require('child_process')
-const fs = require('fs/promises')
-const path = require('path')
+const { execSync, execFileSync, spawn } = require('node:child_process')
+const fs = require('node:fs/promises')
+const path = require('node:path')
 
 const OUTPUT_ROOT = path.join(__dirname, 'pr-status')
 const RESULTS_DIR = path.join(OUTPUT_ROOT, 'results')
@@ -160,7 +160,7 @@ function getJobEnvVarsFromWorkflow() {
     'build_and_test.yml'
   )
   try {
-    const content = require('fs').readFileSync(workflowPath, 'utf8')
+    const content = require('node:fs').readFileSync(workflowPath, 'utf8')
     const envMap = {}
     // Match job blocks: "  job-id:\n    name: display name\n" ... "afterBuild: |"
     const jobRegex =

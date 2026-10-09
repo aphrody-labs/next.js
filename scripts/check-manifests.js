@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-const fs = require('fs')
-const path = require('path')
+const fs = require('node:fs')
+const path = require('node:path')
 const globOrig = require('glob')
-const { promisify } = require('util')
+const { promisify } = require('node:util')
 const glob = promisify(globOrig)
 
 function collectPaths(routes, paths = []) {

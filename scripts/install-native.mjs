@@ -1,8 +1,8 @@
-import os from 'os'
-import path from 'path'
+import os from 'node:os'
+import path from 'node:path'
 import execa from 'execa'
-import fs from 'fs'
-import fsp from 'fs/promises'
+import fs from 'node:fs'
+import fsp from 'node:fs/promises'
 import { outdent } from 'outdent'
 ;(async function () {
   // Automatically installing native bindings is opt-in in CI and opt-out in local development.

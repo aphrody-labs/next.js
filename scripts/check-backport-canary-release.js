@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // @ts-check
 
-const fs = require('fs/promises')
+const fs = require('node:fs/promises')
 const semver = require('semver')
 const {
   getGitHubToken,

@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 // @ts-check
 
-const path = require('path')
+const path = require('node:path')
 const execa = require('execa')
 const semver = require('semver')
 const { Sema } = require('async-sema')
-const fs = require('fs/promises')
+const fs = require('node:fs/promises')
 const {
   getGitHubToken,
   getGitHubTokenMissingMessage,

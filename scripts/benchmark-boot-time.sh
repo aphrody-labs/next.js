@@ -56,7 +56,7 @@ EOF
   cat > "$TEST_DIR/app/page.tsx" << 'EOF'
 export default function Home() { return <h1>Hello</h1> }
 EOF
-  (cd "$TEST_DIR" && npm install --silent)
+  (cd "$TEST_DIR" && bun install --silent)
   # Link local next
   (cd "$TEST_DIR" && npm link "$(dirname "$NEXT_BIN")/.." 2>/dev/null || true)
 fi

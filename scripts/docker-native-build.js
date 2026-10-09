@@ -8,10 +8,10 @@
 //   --test         Smoke-test built binaries (native arch only)
 //   filter         Substring match on target name (e.g. "musl", "x86_64")
 
-const { execFileSync } = require('child_process')
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
+const { execFileSync } = require('node:child_process')
+const path = require('node:path')
+const fs = require('node:fs')
+const os = require('node:os')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
 const DOCKER_IMAGE = 'next-swc-builder:latest'

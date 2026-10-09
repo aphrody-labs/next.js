@@ -1,6 +1,6 @@
-const path = require('path')
-const { spawn } = require('child_process')
-const fs = require('fs/promises')
+const path = require('node:path')
+const { spawn } = require('node:child_process')
+const fs = require('node:fs/promises')
 
 const cwd = process.cwd()
 
