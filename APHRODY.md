@@ -34,15 +34,18 @@ Versions have the form `<upstream version>-aphrody.<n>`, and every package of a 
 
 ## Scripts and workflows
 
-| File                                          | Role                                                                                                                                                                                 |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `scripts/aphrody/bunify.ts`                   | pnpm/Node to Bun rewrite of the managed files (`--check`, `--write`)                                                                                                                 |
-| `scripts/aphrody/scope.ts`                    | `@aphrody` names, npm aliases, scope check                                                                                                                                           |
-| `scripts/aphrody/sync-upstream.ts`            | merges `upstream/canary`. Conflicts on managed files are retried as a Bun-aware three-way merge. pnpm files stay deleted. `bun.lock` is re-migrated from upstream's `pnpm-lock.yaml` |
-| `scripts/aphrody/install-native.ts`           | postinstall: the newest `@aphrody/next-swc-*` for the checkout's version. A binding built locally in `packages/next-swc/native` takes precedence                                     |
-| `scripts/aphrody/publish-npm.ts`              | `version`, `publish --version <v>`: native packages, then the JS packages, then `next`                                                                                               |
-| `.github/workflows/aphrody-upstream-sync.yml` | runs every 6 h: `sync-upstream.ts --push`                                                                                                                                            |
-| `.github/workflows/aphrody-release.yml`       | tag `aphrody-v*` or manual: next-swc for 8 platforms, Bun build, npm publish, GitHub release                                                                                         |
+| File                                          | Role                                                                                                                                                                                        |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/aphrody/bunify.ts`                   | pnpm/Node to Bun rewrite of the managed files (`--check`, `--write`)                                                                                                                        |
+| `scripts/aphrody/scope.ts`                    | `@aphrody` names, npm aliases, scope check                                                                                                                                                  |
+| `scripts/aphrody/sync-upstream.ts`            | merges `upstream/canary`. Conflicts on managed files are retried as a Bun-aware three-way merge. pnpm files stay deleted. `bun.lock` is re-migrated from upstream's `pnpm-lock.yaml`        |
+| `scripts/aphrody/install-native.ts`           | postinstall: the newest `@aphrody/next-swc-*` for the checkout's version. A binding built locally in `packages/next-swc/native` takes precedence                                            |
+| `scripts/aphrody/publish-npm.ts`              | `version [--tag aphrody-v<v>]`, `publish --version <v> [--dry-run]`: native packages, then the JS packages, then `next`                                                                     |
+| `scripts/aphrody/consume.ts`                  | `<consumer root> --version <v> [--write]`: points `next`, `@next/*`... of a consumer (root, workspaces, catalogs, overrides) at `npm:@aphrody/<name>@<v>`; refuses a version missing on npm |
+| `scripts/aphrody/test-unit-bun.ts`            | `bun run test-unit-bun`: the unit tests of `scripts/aphrody/bun-unit-tests.txt` under `bun test --isolate`; the other suites stay on Jest                                                   |
+| `.github/actions/aphrody-setup-bun`           | installs the aphrody-labs/bun release pinned by `packageManager`                                                                                                                            |
+| `.github/workflows/aphrody-upstream-sync.yml` | runs every 6 h: `sync-upstream.ts --push`                                                                                                                                                   |
+| `.github/workflows/aphrody-release.yml`       | tag `aphrody-v*` or manual: next-swc for 8 platforms, Bun build, npm publish, GitHub release                                                                                                |
 
 The tests of these scripts are in `scripts/aphrody/test`:
 
