@@ -161,8 +161,9 @@ export async function bunBuild(
     appDir,
     projectInfo,
   }
+  const loadableIds = new Set<string>()
   const swc = (side: 'server' | 'client') =>
-    nextSwcPlugin({ ...swcState, side })
+    nextSwcPlugin({ ...swcState, side, loadableIds })
   const postcss = await postcssPlugin(swcState)
   const cssPlugins = postcss ? [...extraPlugins, postcss] : extraPlugins
 
@@ -382,6 +383,12 @@ client.initialize({}).then(() => client.hydrate()).catch(console.error);
     )
   )
 
+  // Bundled ESM chunks cannot be listed as classic preload scripts: `files` stays empty.
+  const loadableManifest = JSON.stringify(
+    Object.fromEntries(
+      [...loadableIds].sort().map((id) => [id, { id, files: [] }])
+    )
+  )
   const fontManifest = JSON.stringify({
     pages: {},
     app: {},
@@ -398,8 +405,8 @@ client.initialize({}).then(() => client.hydrate()).catch(console.error);
     )};self.__BUILD_MANIFEST_CB && self.__BUILD_MANIFEST_CB()`,
     [ssgManifestPath]: srcEmptySsgManifest,
     'server/pages-manifest.json': JSON.stringify(pagesManifest, null, 2),
-    'react-loadable-manifest.json': '{}',
-    'server/middleware-react-loadable-manifest.js': `self.__REACT_LOADABLE_MANIFEST='{}';`,
+    'react-loadable-manifest.json': loadableManifest,
+    'server/middleware-react-loadable-manifest.js': `self.__REACT_LOADABLE_MANIFEST=${JSON.stringify(loadableManifest)};`,
     'dynamic-css-manifest.json': '[]',
     'server/dynamic-css-manifest.js': `self.__DYNAMIC_CSS_MANIFEST="[]";`,
     'server/next-font-manifest.json': fontManifest,
@@ -506,11 +513,77 @@ async function postcssPlugin(state: SwcState): Promise<BunPlugin | null> {
   }
 }
 
+const STRING = String.raw`"(?:[^"\x5c]|\x5c.)*"`
+const LOADABLE_GENERATED = /\bloadableGenerated:/g
+// Browser: `webpack: () => [require.resolveWeak("./x")]` (function or arrow form).
+const LOADABLE_WEBPACK =
+  /loadableGenerated:\s*\{\s*webpack:\s*(?:function\s*\(\)\s*\{\s*return\s*\[([^\]]*)\];?\s*\}|\(\)\s*=>\s*\[([^\]]*)\])\s*\}/g
+const RESOLVE_WEAK = new RegExp(
+  String.raw`require\.resolveWeak\(\s*(${STRING})\s*\)`,
+  'g'
+)
+// Server: `modules: ["pages/x.js -> " + "./x"]`.
+const LOADABLE_MODULES =
+  /loadableGenerated:\s*\{\s*modules:\s*\[([^\]]*)\]\s*\}/g
+const MODULE_REQUEST = new RegExp(String.raw`${STRING}\s*\+\s*(${STRING})`, 'g')
+
+/**
+ * Gives every next/dynamic call the same module ids on both sides (the imported
+ * file relative to the project) in place of webpack's `require.resolveWeak`
+ * ids, so the server's `dynamicIds` match the browser's ready initializers.
+ */
+function loadableModules(
+  code: string,
+  {
+    file,
+    dir,
+    isServer,
+    loadableIds,
+  }: { file: string; dir: string; isServer: boolean; loadableIds: Set<string> }
+) {
+  const expected = code.match(LOADABLE_GENERATED)?.length ?? 0
+  if (expected === 0) return code
+  let replaced = 0
+  const ids = (list: string, pattern: RegExp) =>
+    [...list.matchAll(pattern)].map(([, literal]) => {
+      const request: string = JSON.parse(literal)
+      let resolved: string
+      try {
+        resolved = Bun.resolveSync(request, path.dirname(file))
+      } catch {
+        throw new BunBuildUnsupportedError(
+          `next/dynamic of "${request}" in ${file} (unresolved)`
+        )
+      }
+      const id = posix(path.relative(dir, resolved))
+      loadableIds.add(id)
+      return id
+    })
+  const rewrite = (list: string, pattern: RegExp) => {
+    replaced++
+    return `loadableGenerated: { modules: ${JSON.stringify(ids(list, pattern))} }`
+  }
+  code = isServer
+    ? code.replace(LOADABLE_MODULES, (_, list: string) =>
+        rewrite(list, MODULE_REQUEST)
+      )
+    : code.replace(LOADABLE_WEBPACK, (_, fn?: string, arrow?: string) =>
+        rewrite((fn ?? arrow)!, RESOLVE_WEAK)
+      )
+  if (replaced !== expected)
+    throw new BunBuildUnsupportedError(`This next/dynamic call shape (${file})`)
+  return code
+}
+
 /** Runs Next.js' SWC transforms (SSG stripping, styled-jsx, next/dynamic, …) on project sources. */
 function nextSwcPlugin({
   side,
+  loadableIds,
   ...state
-}: SwcState & { side: 'server' | 'client' }): BunPlugin {
+}: SwcState & {
+  side: 'server' | 'client'
+  loadableIds: Set<string>
+}): BunPlugin {
   const { distDir, pagesDir } = state
   const isServer = side === 'server'
   const generated = path.join(distDir, 'cache', 'bun-entries') + path.sep
@@ -551,7 +624,15 @@ function nextSwcPlugin({
               : 'pages-dir-node'
             : 'pages-dir-browser',
         })
-        return { contents: code, loader: 'js' }
+        return {
+          contents: loadableModules(code, {
+            file: args.path,
+            dir: state.dir,
+            isServer,
+            loadableIds,
+          }),
+          loader: 'js',
+        }
       })
     },
   }
