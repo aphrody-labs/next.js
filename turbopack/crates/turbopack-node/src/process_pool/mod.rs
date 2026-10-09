@@ -316,7 +316,7 @@ impl NodeJsPoolProcess {
             .await
             .context("binding to a port")?;
         let port = listener.local_addr().context("getting port")?.port();
-        let mut cmd = Command::new("node");
+        let mut cmd = Command::new(turbopack_core::environment::node_executable());
         cmd.current_dir(cwd);
         if debug {
             cmd.arg("--inspect-brk");

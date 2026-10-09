@@ -18,6 +18,11 @@ export function bundlerName(bundler: Bundler): string {
   }
 }
 
+/** NEXT_BUN (set by `withBun()`): `next build` compiles with Bun.build (build/bun-build). */
+export function isBunBundler(): boolean {
+  return !!process.env.NEXT_BUN && process.env.NEXT_BUN !== '0'
+}
+
 /**
  * Derive the currently configured bundler from the environment.
  */
@@ -119,6 +124,16 @@ Edit your command or your package.json script to configure only one bundler.`
  * so this should only be called after parsing the config.
  */
 export function finalizeBundlerFromConfig(fromOptions: Bundler) {
+  // NEXT_BUN (set by `withBun()`): the webpack pipeline, whose compile step is
+  // Bun.build (build/bun-build).
+  if (isBunBundler()) {
+    if (fromOptions !== Bundler.Webpack) {
+      Log.event(
+        `Switching bundler from ${bundlerName(fromOptions)} to Bun based on config`
+      )
+    }
+    return Bundler.Webpack
+  }
   // Reading the next config can set NEXT_RSPACK environment variables.
   if (process.env.NEXT_RSPACK) {
     if (fromOptions !== Bundler.Rspack) {

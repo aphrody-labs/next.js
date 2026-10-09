@@ -8,6 +8,7 @@ import path from 'path'
 import { exportTraceState, recordTraceEvents } from '../../trace'
 import { mergeUseCacheTrackers } from '../webpack/plugins/telemetry-plugin/use-cache-tracker-utils'
 import { durationToString } from '../duration-to-string'
+import { isBunBundler } from '../../lib/bundler'
 
 const debug = origDebug('next:build:webpack-build')
 
@@ -137,6 +138,12 @@ export async function webpackBuild(
 > {
   const nextBuildSpan = NextBuildContext.nextBuildSpan!
   return nextBuildSpan.traceChild('run-webpack').traceAsyncFn(async () => {
+    if (isBunBundler()) {
+      debug('compiling with Bun.build')
+      const { bunBuild } =
+        require('../bun-build') as typeof import('../bun-build')
+      return await bunBuild(compilerNames)
+    }
     if (withWorker) {
       debug('using separate compiler workers')
       return await webpackBuildWithWorker(compilerNames)

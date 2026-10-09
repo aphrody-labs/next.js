@@ -1,4 +1,6 @@
 use std::{
+    ffi::OsString,
+    path::Path,
     process::{Command, Stdio},
     str::FromStr,
 };
@@ -442,8 +444,9 @@ impl RuntimeVersions {
 pub async fn get_current_nodejs_version(env: Vc<Box<dyn ProcessEnv>>) -> Result<Vc<RcStr>> {
     let path_read = env.read(rcstr!("PATH")).await?;
     let path = path_read.as_ref().context("env must have PATH")?;
-    let mut cmd = Command::new("node");
-    cmd.arg("--version");
+    let mut cmd = Command::new(node_executable());
+    // `bun --version` prints Bun's version; `process.version` is Node.js's in both runtimes.
+    cmd.args(["-p", "process.version"]);
     cmd.env_clear();
     cmd.env("PATH", path);
     cmd.stdin(Stdio::piped());
@@ -453,7 +456,7 @@ pub async fn get_current_nodejs_version(env: Vc<Box<dyn ProcessEnv>>) -> Result<
 
     if !output.status.success() {
         bail!(
-            "'node --version' command failed{}{}",
+            "'node -p process.version' command failed{}{}",
             output
                 .status
                 .code()
@@ -466,13 +469,84 @@ pub async fn get_current_nodejs_version(env: Vc<Box<dyn ProcessEnv>>) -> Result<
     }
 
     let version = String::from_utf8(output.stdout)
-        .context("failed to parse 'node --version' output as utf8")?;
+        .context("failed to parse 'node -p process.version' output as utf8")?;
     if let Some(version_number) = version.strip_prefix("v") {
         Ok(Vc::cell(version_number.trim().into()))
     } else {
         bail!(
-            "Expected 'node --version' to return a version starting with 'v', but received: '{}'",
+            "Expected 'node -p process.version' to return a version starting with 'v', but \
+             received: '{}'",
             version
         )
+    }
+}
+
+/// The JavaScript runtime Turbopack spawns for Node.js work (webpack loaders,
+/// PostCSS, `process.version`): `TURBOPACK_NODE_BINARY` when set, else the
+/// host process when it is the runtime that loaded the bindings (`node` or
+/// `bun`), else `node` from `PATH`. Next.js running on Bun therefore runs its
+/// workers on Bun, with no `node` installed.
+pub fn node_executable() -> OsString {
+    node_executable_from(
+        std::env::var_os("TURBOPACK_NODE_BINARY"),
+        std::env::current_exe().ok().as_deref(),
+    )
+}
+
+fn node_executable_from(explicit: Option<OsString>, host: Option<&Path>) -> OsString {
+    if let Some(bin) = explicit.filter(|bin| !bin.is_empty()) {
+        return bin;
+    }
+    let is_runtime = |stem: &str| stem == "node" || stem == "bun" || stem.starts_with("bun-");
+    match host {
+        Some(exe)
+            if exe
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .is_some_and(is_runtime) =>
+        {
+            exe.as_os_str().to_owned()
+        }
+        _ => OsString::from("node"),
+    }
+}
+
+#[cfg(test)]
+mod node_executable_tests {
+    use std::path::Path;
+
+    use super::node_executable_from;
+
+    #[test]
+    fn explicit_binary_wins() {
+        assert_eq!(
+            node_executable_from(Some("/opt/bun".into()), Some(Path::new("/usr/bin/node"))),
+            "/opt/bun"
+        );
+    }
+
+    #[test]
+    fn host_runtime_is_reused() {
+        assert_eq!(
+            node_executable_from(None, Some(Path::new("/home/u/.bun/bin/bun"))),
+            "/home/u/.bun/bin/bun"
+        );
+        assert_eq!(
+            node_executable_from(Some("".into()), Some(Path::new("C:/bun/bun-debug.exe"))),
+            "C:/bun/bun-debug.exe"
+        );
+        assert_eq!(
+            node_executable_from(None, Some(Path::new("/usr/local/bin/node"))),
+            "/usr/local/bin/node"
+        );
+    }
+
+    #[test]
+    fn other_hosts_use_node_from_path() {
+        assert_eq!(
+            node_executable_from(None, Some(Path::new("/usr/bin/turbopack-cli"))),
+            "node"
+        );
+        assert_eq!(node_executable_from(None, None), "node");
     }
 }
