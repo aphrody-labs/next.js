@@ -5,6 +5,7 @@ export enum Bundler {
   Turbopack,
   Webpack,
   Rspack,
+  Bun,
 }
 
 export function bundlerName(bundler: Bundler): string {
@@ -15,6 +16,8 @@ export function bundlerName(bundler: Bundler): string {
       return 'webpack'
     case Bundler.Rspack:
       return 'Rspack'
+    case Bundler.Bun:
+      return 'Bun'
   }
 }
 
@@ -27,6 +30,9 @@ export function isBunBundler(): boolean {
  * Derive the currently configured bundler from the environment.
  */
 export function getBundlerFromEnv(): Bundler {
+  if (isBunBundler()) {
+    return Bundler.Bun
+  }
   if (process.env.NEXT_RSPACK) {
     return Bundler.Rspack
   }
@@ -47,11 +53,19 @@ export function parseBundlerArgs(options: {
   turbo?: boolean
   turbopack?: boolean
   webpack?: boolean
+  bun?: boolean
 }): Bundler {
   const bundlerFlags = new Map<Bundler, string[]>()
   const setBundlerFlag = (bundler: Bundler, flag: string) => {
     bundlerFlags.set(bundler, (bundlerFlags.get(bundler) ?? []).concat(flag))
   }
+
+  if (options.bun) {
+    setBundlerFlag(Bundler.Bun, '--bun')
+  } else if (process.env.NEXT_BUN && process.env.NEXT_BUN !== '0') {
+    setBundlerFlag(Bundler.Bun, `NEXT_BUN=${process.env.NEXT_BUN}`)
+  }
+
   // What turbo flag was set? We allow multiple to be set, which is silly but not ambiguous, just pick the most relevant one.
   if (options.turbopack) {
     setBundlerFlag(Bundler.Turbopack, '--turbopack')
@@ -101,10 +115,18 @@ Edit your command or your package.json script to configure only one bundler.`
     )
     process.exit(1)
   }
-  // The default is turbopack when nothing is configured.
+  // The default is turbopack when nothing is configured, unless running on Bun (`bun next build`)
   if (bundlerFlags.size === 0) {
+    if (Boolean(process.versions?.bun) && process.env.NEXT_BUN !== '0') {
+      process.env.NEXT_BUN = '1'
+      return Bundler.Bun
+    }
     process.env.TURBOPACK = 'auto'
     return Bundler.Turbopack
+  }
+  if (bundlerFlags.has(Bundler.Bun)) {
+    process.env.NEXT_BUN = '1'
+    return Bundler.Bun
   }
   if (bundlerFlags.has(Bundler.Turbopack)) {
     // Only conditionally assign to the environment variable, preserving already set values.
@@ -126,12 +148,13 @@ Edit your command or your package.json script to configure only one bundler.`
 export function finalizeBundlerFromConfig(fromOptions: Bundler) {
   // NEXT_BUN (set by `withBun()`): the webpack pipeline, whose compile step is
   // Bun.build (build/bun-build).
-  if (isBunBundler()) {
-    if (fromOptions !== Bundler.Webpack) {
+  if (isBunBundler() || fromOptions === Bundler.Bun) {
+    if (fromOptions !== Bundler.Webpack && fromOptions !== Bundler.Bun) {
       Log.event(
         `Switching bundler from ${bundlerName(fromOptions)} to Bun based on config`
       )
     }
+    process.env.NEXT_BUN = '1'
     return Bundler.Webpack
   }
   // Reading the next config can set NEXT_RSPACK environment variables.
@@ -144,4 +167,19 @@ export function finalizeBundlerFromConfig(fromOptions: Bundler) {
     return Bundler.Rspack
   }
   return fromOptions
+}
+
+/**
+ * Wraps a Next.js configuration to enable the native Bun bundler and runtime optimizations.
+ */
+export function withBun(
+  nextConfig: any = {},
+  options: { bundler?: 'bun' | 'turbopack' } = {}
+) {
+  if (options.bundler !== 'turbopack') {
+    process.env.NEXT_BUN = '1'
+  }
+  return {
+    ...nextConfig,
+  }
 }

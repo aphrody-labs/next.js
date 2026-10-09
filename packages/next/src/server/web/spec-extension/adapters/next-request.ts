@@ -59,6 +59,19 @@ export class NextRequestAdapter {
     signal: AbortSignal
   ): NextRequest {
     if (
+      // On Bun, directly leverage native Web Request if available, bypassing Node transformations
+      Boolean(process.versions?.bun) &&
+      (isWebNextRequest(request) ||
+        (request as any).request instanceof Request ||
+        (request as any)._req?._nativeRequest instanceof Request)
+    ) {
+      if (isWebNextRequest(request)) {
+        return NextRequestAdapter.fromWebNextRequest(request)
+      }
+      const nativeReq =
+        (request as any).request ?? (request as any)._req?._nativeRequest
+      return new NextRequest(nativeReq)
+    } else if (
       // The type check here ensures that `req` is correctly typed, and the
       // environment variable check provides dead code elimination.
       process.env.NEXT_RUNTIME === 'edge' &&
@@ -81,11 +94,28 @@ export class NextRequestAdapter {
     request: NodeNextRequest,
     signal: AbortSignal
   ): NextRequest {
+    // On Bun, check if the request already wraps a native Bun C++ Request
+    if (Boolean(process.versions?.bun)) {
+      const nativeReq =
+        (request as any)._req?._nativeRequest ?? (request as any).request
+      if (nativeReq instanceof Request) {
+        return new NextRequest(nativeReq)
+      }
+    }
+
     // HEAD and GET requests can not have a body.
     let body: BodyInit | null = null
-    if (request.method !== 'GET' && request.method !== 'HEAD' && request.body) {
-      // @ts-expect-error - this is handled by undici, when streams/web land use it instead
-      body = request.body
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      if (
+        Boolean(process.versions?.bun) &&
+        typeof (request as any).stream === 'function'
+      ) {
+        // Direct native Web ReadableStream on Bun, bypassing Node stream event emitters
+        body = (request as any).stream()
+      } else if (request.body) {
+        // @ts-expect-error - this is handled by undici, when streams/web land use it instead
+        body = request.body
+      }
     }
 
     let url: URL

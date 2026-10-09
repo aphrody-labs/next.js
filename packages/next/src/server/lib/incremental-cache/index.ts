@@ -142,7 +142,11 @@ export class CacheHandler {
 }
 
 async function hashString(cacheString: string): Promise<string> {
-  if (process.env.NEXT_RUNTIME === 'edge') {
+  if (
+    process.env.NEXT_RUNTIME === 'edge' ||
+    Boolean(process.versions?.bun) ||
+    typeof globalThis.crypto?.subtle !== 'undefined'
+  ) {
     const encoder = new TextEncoder()
     const buffer = encoder.encode(cacheString)
     return toHex(await crypto.subtle.digest('SHA-256', buffer))

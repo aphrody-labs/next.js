@@ -208,6 +208,7 @@ program
   .option('--turbo', 'Builds using Turbopack.')
   .option('--turbopack', 'Builds using Turbopack.')
   .option('--webpack', 'Builds using webpack.')
+  .option('--bun', 'Builds using the Bun bundler.')
   .addOption(
     new Option(
       '--experimental-build-mode [mode]',

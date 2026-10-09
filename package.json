@@ -17,6 +17,7 @@
     "pr-adopt": "bun scripts/adopt-pr.js",
     "clean": "bun run --filter \"./packages/**\" clean && bun -e \"for (const d of new Bun.Glob(\\\"packages/*/{dist,node_modules}\\\").scanSync({ onlyFiles: false })) require(\\\"node:fs\\\").rmSync(d, { recursive: true, force: true })\"",
     "build": "turbo run build --remote-cache-timeout 60 --summarize true",
+    "build:fast": "bun ./scripts/aphrody/fast-build.ts",
     "build-all": "turbo run build build-native-auto --remote-cache-timeout 60 --summarize true",
     "dev": "turbo run dev --parallel --filter=\"!@next/bundle-analyzer-ui\"",
     "bench:render-pipeline": "bun bench/render-pipeline/benchmark.ts",

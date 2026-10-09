@@ -32,4 +32,18 @@ describe('Bun bundler selection', () => {
     delete process.env.NEXT_RSPACK
     expect(finalizeBundlerFromConfig(Bundler.Turbopack)).toBe(Bundler.Turbopack)
   })
+
+  it('selects Bundler.Bun with --bun argument', () => {
+    const { parseBundlerArgs } = (require('./bundler') as typeof import('./bundler'))
+    expect(parseBundlerArgs({ bun: true })).toBe(Bundler.Bun)
+    expect(process.env.NEXT_BUN).toBe('1')
+  })
+
+  it('enables NEXT_BUN with withBun() helper', () => {
+    const { withBun } = (require('./bundler') as typeof import('./bundler'))
+    delete process.env.NEXT_BUN
+    const config = withBun({ reactStrictMode: true })
+    expect(config.reactStrictMode).toBe(true)
+    expect(process.env.NEXT_BUN).toBe('1')
+  })
 })

@@ -84,6 +84,7 @@
   "scripts": {
     "dev": "cross-env NEXT_SERVER_NO_MANGLE=1 taskr",
     "build": "taskr release",
+    "build:fast": "bun ./scripts/aphrody/fast-build.ts",
     "types": "tsc --project tsconfig.build.json --declaration --emitDeclarationOnly --stripInternal --declarationDir dist",
     "typescript": "tsc --noEmit",
     "ncc-compiled": "taskr ncc",

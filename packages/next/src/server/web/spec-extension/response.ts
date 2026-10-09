@@ -150,6 +150,14 @@ export class NextResponse<Body = unknown> extends Response {
     handleMiddlewareField(init, headers)
     return new NextResponse(null, { ...init, headers })
   }
+
+  /**
+   * Returns this response as a native Web Response instance.
+   * On Bun, this directly exposes the native C++ Response object.
+   */
+  public toNativeResponse(): Response {
+    return this
+  }
 }
 
 interface ResponseInit extends globalThis.ResponseInit {
