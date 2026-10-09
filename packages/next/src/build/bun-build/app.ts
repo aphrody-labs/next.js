@@ -467,7 +467,9 @@ export async function buildApp(
       )
     } else isModule = true
     if (!isModule) {
-      return `const { createProxy } = require(${moduleProxy});\nmodule.exports = createProxy(${key});\n${register}module.exports);\n`
+      // React's module proxy reports Promise.prototype as its prototype, which the
+      // namespace object of `import()` (`__toESM`) inherits: it would be a thenable.
+      return `const { createProxy } = require(${moduleProxy});\nmodule.exports = new Proxy(createProxy(${key}), { getPrototypeOf: () => Object.prototype });\n${register}module.exports);\n`
     }
     const lines = [
       `import { registerClientReference } from "react-server-dom-webpack/server";`,

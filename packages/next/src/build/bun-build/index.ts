@@ -33,6 +33,8 @@ import {
 import { transform } from '../swc'
 import { getLoaderSWCOptions } from '../swc/options'
 import * as Log from '../output/log'
+import { findConfig } from '../../lib/find-config'
+import { getPostCssPlugins } from '../webpack/config/blocks/css/plugins'
 import type { BuildTraceContext } from '../webpack/plugins/next-trace-entrypoints-plugin'
 import { buildApp } from './app'
 import {
@@ -161,6 +163,8 @@ export async function bunBuild(
   }
   const swc = (side: 'server' | 'client') =>
     nextSwcPlugin({ ...swcState, side })
+  const postcss = await postcssPlugin(swcState)
+  const cssPlugins = postcss ? [...extraPlugins, postcss] : extraPlugins
 
   const entriesDir = path.join(distDir, 'cache', 'bun-entries')
   rmSync(entriesDir, { recursive: true, force: true })
@@ -224,7 +228,7 @@ export async function bunBuild(
       format: 'cjs',
       packages: 'external',
       define: defines('server'),
-      plugins: [swc('server'), ...extraPlugins],
+      plugins: [swc('server'), ...cssPlugins],
       throw: false,
     })
     if (!server.success) {
@@ -290,7 +294,7 @@ client.initialize({}).then(() => client.hydrate()).catch(console.error);
     splitting: true,
     minify: !ctx.noMangling,
     define: defines('client'),
-    plugins: [swc('client'), ...extraPlugins],
+    plugins: [swc('client'), ...cssPlugins],
     metafile: true,
     throw: false,
   })
@@ -345,7 +349,7 @@ client.initialize({}).then(() => client.hydrate()).catch(console.error);
         entriesDir,
         chunksDir,
         loaderOptions: parseLoaderRequest,
-        plugins: extraPlugins,
+        plugins: cssPlugins,
         minify: !ctx.noMangling,
         swcCode: (filename, source, layer) =>
           swcCode(swcState, filename, source, layer),
@@ -469,6 +473,37 @@ async function swcCode(
     sourceMaps: false,
   })
   return output.code
+}
+
+/**
+ * The project's PostCSS configuration (`postcss.config.*`), loaded the way
+ * webpack's CSS rules load it, as a Bun plugin; null without one, where Bun's
+ * CSS bundler alone stands in for Next's default plugins.
+ */
+async function postcssPlugin(state: SwcState): Promise<BunPlugin | null> {
+  const { ctx, dir, projectInfo } = state
+  if (!(await findConfig(dir, 'postcss'))) return null
+  const { config } = ctx
+  const plugins = await getPostCssPlugins(
+    dir,
+    projectInfo.supportedBrowsers,
+    !!config.experimental.disablePostcssPresetEnv,
+    !!config.experimental.useLightningcss
+  )
+  const postcss = require('postcss') as typeof import('postcss')
+  const processor = ((postcss as any).default ?? postcss)(plugins)
+  return {
+    name: 'next-postcss',
+    setup(build) {
+      build.onLoad({ filter: /\.css$/ }, async (args: { path: string }) => {
+        const result = await processor.process(
+          readFileSync(args.path, 'utf8'),
+          { from: args.path, map: false }
+        )
+        return { contents: result.css, loader: 'css' }
+      })
+    },
+  }
 }
 
 /** Runs Next.js' SWC transforms (SSG stripping, styled-jsx, next/dynamic, …) on project sources. */
