@@ -184,16 +184,13 @@ jobs:
           path: ${{ runner.temp }}/native
           pattern: next-swc-*
           merge-multiple: true
-      # apps/bundle-analyzer runs `next build` with NEXT_TEST_NATIVE_IGNORE_LOCAL_INSTALL
-      # and no @aphrody/next-swc-* is on npm before the first release: it loads the
-      # bindings built above through NEXT_TEST_NATIVE_DIR, which turbo passes in
-      # loose env mode only.
+      # apps/bundle-analyzer builds with its pinned npm `next` and that release's
+      # @next/swc-*; NEXT_TEST_NATIVE_DIR would hand it the bindings built above,
+      # whose napi options it does not match ("Missing field `additionalRoots`").
       - name: Build JS packages
-        env:
-          NEXT_TEST_NATIVE_DIR: ${{ runner.temp }}/native
         run: |
           bun install --frozen-lockfile
-          bun run build --env-mode loose
+          bun run build
       - name: Publish to npm
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
