@@ -1,0 +1,59 @@
+name: aphrody bun
+
+# Fork-only (aphrody-labs/next.js): the repository runs on Bun alone, JS/TS to Rust.
+# 1. scripts/aphrody/bunify.ts --check: no pnpm/node left after an upstream sync;
+# 2. bun install --frozen-lockfile, bun run build (turbo, napi Rust crates);
+# 3. next-swc built from this tree, then scripts/aphrody/e2e.ts with node removed from PATH:
+#    Turbopack's Rust process pool must run PostCSS under Bun and pages must render under Bun.
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [canary]
+    paths:
+      - ".github/workflows/aphrody-bun.yml"
+      - "scripts/aphrody/**"
+      - "package.json"
+      - "bun.lock"
+      - "bunfig.toml"
+      - "patches/**"
+      - "turbopack/crates/turbopack-core/src/environment.rs"
+      - "turbopack/crates/turbopack-node/src/process_pool/**"
+
+concurrency:
+  group: aphrody-bun-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bun:
+    name: bun only (linux-x64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+      - name: No Node.js on the runner
+        run: |
+          for n in $(command -v -a node nodejs 2>/dev/null); do sudo rm -f "$n"; done
+          ! command -v node
+      - name: Rust toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+      - name: bunify --check
+        run: bun scripts/aphrody/bunify.ts --check
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: next-swc from this tree
+        working-directory: packages/next-swc
+        run: bun run build-native
+      - name: e2e without node
+        run: bun scripts/aphrody/e2e.ts

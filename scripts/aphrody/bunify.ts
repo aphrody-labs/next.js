@@ -55,8 +55,8 @@ if (existsSync(wsFile)) {
   if (!check) rmSync(wsFile);
   changed++;
 }
-rootPkg.packageManager = `bun@${Bun.version}`;
-rootPkg.engines = { bun: `>=${Bun.version}` };
+if (!String(rootPkg.packageManager ?? "").startsWith("bun@")) rootPkg.packageManager = `bun@${Bun.version}`;
+rootPkg.engines = { bun: `>=${rootPkg.packageManager.slice(4)}` };
 delete rootPkg.pnpm;
 // pnpm-only lifecycle hook: Bun runs `preinstall` before linking.
 if (rootPkg.scripts?.["pnpm:devPreinstall"]) {

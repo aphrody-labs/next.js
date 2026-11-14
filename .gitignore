@@ -83,3 +83,4 @@ CLAUDE.local.md
 index.scip
 
 .env*
+/test/.aphrody-e2e/
