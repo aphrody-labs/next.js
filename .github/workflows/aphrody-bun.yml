@@ -43,7 +43,8 @@ jobs:
           bun-version-file: package.json
       - name: No Node.js on the runner
         run: |
-          for n in $(command -v -a node nodejs 2>/dev/null); do sudo rm -f "$n"; done
+          for n in $(type -ap node nodejs npm npx pnpm corepack); do sudo rm -f "$n"; done
+          hash -r
           ! command -v node
       - name: Rust toolchain (rust-toolchain.toml)
         run: rustup show active-toolchain || rustup toolchain install
