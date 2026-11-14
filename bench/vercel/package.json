@@ -5,7 +5,7 @@
   "main": "bench.js",
   "type": "module",
   "scripts": {
-    "bench": "node bench.js"
+    "bench": "bun bench.js"
   },
   "author": "",
   "license": "ISC",

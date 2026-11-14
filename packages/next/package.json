@@ -84,7 +84,7 @@
     "next": "./dist/bin/next"
   },
   "scripts": {
-    "dev": "cross-env NEXT_SERVER_NO_MANGLE=1 taskr",
+    "dev": "NEXT_SERVER_NO_MANGLE=1 taskr",
     "build": "taskr release",
     "types": "tsc --project tsconfig.build.json --declaration --emitDeclarationOnly --stripInternal --declarationDir dist",
     "typescript": "tsc --noEmit",
@@ -92,7 +92,7 @@
     "storybook": "BROWSER=none storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test-storybook": "test-storybook",
-    "pack-for-isolated-tests": "pnpm pack --out ./packed.tgz"
+    "pack-for-isolated-tests": "bun run pack --out ./packed.tgz"
   },
   "taskr": {
     "requires": [
@@ -253,7 +253,6 @@
     "content-disposition": "0.5.3",
     "content-type": "1.0.4",
     "cookie": "0.4.1",
-    "cross-env": "6.0.3",
     "cross-spawn": "7.0.3",
     "crypto-browserify": "3.12.0",
     "css-loader": "7.1.2",

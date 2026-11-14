@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 const { execFileSync, spawn } = require('child_process')
 const fs = require('fs/promises')

@@ -79,7 +79,7 @@ async function main() {
   // `--depth -1` limits the output to the workspace projects themselves,
   // without their dependency trees. The filter matches the `packages/*` glob
   // the release only ever publishes from.
-  const pnpmListJson = await execa('pnpm', [
+  const pnpmListJson = await execa('bun', [
     '--silent',
     'list',
     '--recursive',
@@ -93,7 +93,7 @@ async function main() {
   for (const packageInfo of packages) {
     if (!packageInfo.path) {
       throw new Error(
-        `Unexpected \`pnpm list\` output: no \`path\` for ${packageInfo.name}`
+        `Unexpected \`bun run list\` output: no \`path\` for ${packageInfo.name}`
       )
     }
   }
@@ -119,7 +119,7 @@ async function main() {
     const packageJson = await fs.readFile(packageJsonPath, 'utf8')
     const manifest = JSON.parse(packageJson)
 
-    // Read `private` from the manifest rather than from the `pnpm list` entry,
+    // Read `private` from the manifest rather than from the `bun run list` entry,
     // so this does not depend on pnpm surfacing that field.
     if (manifest.private) {
       continue

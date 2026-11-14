@@ -2,6 +2,11 @@
 CARGO_WORKSPACE_DIR = { value = "", relative = true }
 TURBO_PNPM_WORKSPACE_DIR = { value = "", relative = true }
 
+[build]
+# aphrody-labs: ignore a global sccache wrapper (Windows: os error 206 on long rustc command lines).
+# A RUSTC_WRAPPER environment variable (CI) still wins over this key.
+rustc-wrapper = ""
+
 [alias]
 xtask = "run --package xtask --"
 

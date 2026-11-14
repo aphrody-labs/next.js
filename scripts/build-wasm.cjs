@@ -9,7 +9,7 @@ const nextSwcDir = path.join(NEXT_DIR, 'packages/next-swc')
 ;(async () => {
   await execAsyncWithOutput(
     'Build wasm bindings',
-    ['pnpm', 'run', 'build-wasm', ...process.argv.slice(2)],
+    ['bun', 'run', 'build-wasm', ...process.argv.slice(2)],
     {
       cwd: nextSwcDir,
       shell: process.platform === 'win32' ? 'powershell.exe' : false,
@@ -35,7 +35,7 @@ function writeTypes() {
   )
 
   const generatedNotice =
-    '// DO NOT MANUALLY EDIT THESE TYPES\n// You can regenerate this file by running `pnpm swc-build-wasm` in the root of the repo.\n\n'
+    '// DO NOT MANUALLY EDIT THESE TYPES\n// You can regenerate this file by running `bun run swc-build-wasm` in the root of the repo.\n\n'
 
   const generatedTypes = fs.readFileSync(generatedTypesPath, 'utf8')
 
@@ -44,7 +44,7 @@ function writeTypes() {
   fs.writeFileSync(vendoredTypesPath, vendoredTypes)
 
   exec('Prettify generated types', [
-    'pnpm',
+    'bun',
     'prettier',
     '--write',
     vendoredTypesPath,

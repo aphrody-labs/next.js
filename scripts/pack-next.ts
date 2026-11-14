@@ -116,8 +116,8 @@ async function main(): Promise<void> {
   const tarballFiles = getTarballFiles(tarballsDir)
 
   if (cliOptions.jsBuild) {
-    exec('Install Next.js build dependencies', 'pnpm i')
-    exec('Build Next.js', 'pnpm run build')
+    exec('Install Next.js build dependencies', 'bun install')
+    exec('Build Next.js', 'bun run build')
   }
 
   if (shouldCreateTarballs && cliOptions.compress !== 'strip') {
@@ -168,7 +168,7 @@ async function main(): Promise<void> {
     }
   } else {
     console.log('Add the following overrides to your workspace package.json:')
-    console.log(`  "pnpm": {`)
+    console.log(`  "bun": {`)
     console.log(`    "overrides": {`)
     console.log(
       `      "next": ${JSON.stringify(`file:${packageFiles.nextFile}`)},`

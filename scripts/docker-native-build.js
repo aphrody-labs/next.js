@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Local wrapper for running native docker builds.
 //
 // Usage: node scripts/docker-native-build.js [flags] [filter]

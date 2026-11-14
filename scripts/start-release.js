@@ -198,7 +198,7 @@ async function main() {
     versionBumpArgs.push('--preid', 'beta')
   }
 
-  const child = execa('node', versionBumpArgs, {
+  const child = execa(process.execPath, versionBumpArgs, {
     stdio: 'inherit',
   })
 

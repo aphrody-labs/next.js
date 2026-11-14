@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Computes the deterministic parts of a review, so the agent doesn't have to:
 // which areas a PR touches (per review/OWNERS), their owners and rubrics,
 // whether the author owns them, and how many lines of implementation code

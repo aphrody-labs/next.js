@@ -199,7 +199,7 @@ async function sync({ channel, newVersionStr, noInstall }) {
   await fsp.writeFile(
     path.join(cwd, 'package.json'),
     JSON.stringify(pkgJson, null, 2) +
-      // Prettier would add a newline anyway so do it manually to skip the additional `pnpm prettier-write`
+      // Prettier would add a newline anyway so do it manually to skip the additional `bun run prettier-write`
       '\n'
   )
 
@@ -614,7 +614,7 @@ Or, run this command with no arguments to use the most recently published versio
     await fsp.writeFile(
       packageJsonPath,
       JSON.stringify(manifest, null, 2) +
-        // Prettier would add a newline anyway so do it manually to skip the additional `pnpm prettier-write`
+        // Prettier would add a newline anyway so do it manually to skip the additional `bun run prettier-write`
         '\n'
     )
   }
@@ -637,7 +637,7 @@ Or, run this command with no arguments to use the most recently published versio
     await fsp.writeFile(
       packageJsonPath,
       JSON.stringify(manifest, null, 2) +
-        // Prettier would add a newline anyway so do it manually to skip the additional `pnpm prettier-write`
+        // Prettier would add a newline anyway so do it manually to skip the additional `bun run prettier-write`
         '\n'
     )
   }
@@ -652,7 +652,7 @@ Or, run this command with no arguments to use the most recently published versio
   } else {
     console.log('Installing dependencies...')
 
-    const installSubprocess = execa('pnpm', [
+    const installSubprocess = execa('bun', [
       'install',
       // Pnpm freezes the lockfile by default in CI.
       // However, we just changed versions so the lockfile is expected to be changed.
@@ -673,7 +673,7 @@ Or, run this command with no arguments to use the most recently published versio
     }
 
     console.log('Building vendored React files...\n')
-    const nccSubprocess = execa('pnpm', ['ncc-compiled'], {
+    const nccSubprocess = execa('bun', ['ncc-compiled'], {
       cwd: path.join(cwd, 'packages', 'next'),
     })
     if (nccSubprocess.stdout) {

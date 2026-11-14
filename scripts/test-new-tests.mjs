@@ -133,7 +133,7 @@ async function main() {
     console.log(
       `Running each ${testMode} suite three times with shared concurrency (Turbopack)`
     )
-    await execa('node', [...RUN_TESTS_ARGS, '--runs', '3', ...currentTests], {
+    await execa(process.execPath, [...RUN_TESTS_ARGS, '--runs', '3', ...currentTests], {
       ...EXECA_OPTS_STDIO,
       env: {
         ...process.env,
@@ -149,7 +149,7 @@ async function main() {
     })
   } else {
     console.log(`Running ${testMode} tests`)
-    await execa('node', [...RUN_TESTS_ARGS, '-c', '1', ...currentTests], {
+    await execa(process.execPath, [...RUN_TESTS_ARGS, '-c', '1', ...currentTests], {
       ...EXECA_OPTS_STDIO,
       env: {
         ...process.env,

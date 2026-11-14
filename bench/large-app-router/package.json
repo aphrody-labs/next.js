@@ -2,8 +2,8 @@
   "name": "bench-large-app-router",
   "private": true,
   "scripts": {
-    "prepare-bench": "node scripts/generate.mjs",
-    "bench-build": "node scripts/bench-build.mjs",
+    "prepare-bench": "bun scripts/generate.mjs",
+    "bench-build": "bun scripts/bench-build.mjs",
     "dev-application": "next dev",
     "dev-turbopack": "next dev --turbopack",
     "build-application": "next build",

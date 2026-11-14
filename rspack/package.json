@@ -23,9 +23,9 @@
     "lib"
   ],
   "scripts": {
-    "build": "pnpm run --filter @next/rspack-binding build",
-    "build:debug": "pnpm run --filter @next/rspack-binding build:debug",
-    "change-npm-name": "node ./change-npm-name.js"
+    "build": "bun run --filter @next/rspack-binding build",
+    "build:debug": "bun run --filter @next/rspack-binding build:debug",
+    "change-npm-name": "bun ./change-npm-name.js"
   },
   "dependencies": {
     "@rspack/core": "2.0.4",

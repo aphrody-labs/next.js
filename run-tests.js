@@ -690,7 +690,7 @@ ${ENDGROUP}`)
       tests.some((test) => !testFilters.unit.test(test.file)))
   ) {
     // For isolated next tests (e2e, dev, prod) we create a starter Next.js
-    // install to re-use to speed up tests to avoid having to run `pnpm install`
+    // install to re-use to speed up tests to avoid having to run `bun install`
     // each time.
     console.log(`${GROUP}Creating shared Next.js install`)
     const reactVersion =

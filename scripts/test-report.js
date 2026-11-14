@@ -20,7 +20,7 @@ function getJobMarker(jobName) {
  * @typedef {object} FailedSuite
  * @property {string} testPath Repo-relative path of the test file.
  * @property {string} [mode] `NEXT_TEST_MODE` the suite ran with, e.g. `dev`
- *   or `start`. Without it the command is rendered as plain `pnpm test`.
+ *   or `start`. Without it the command is rendered as plain `bun run test`.
  * @property {boolean} [isTurbopack]
  * @property {boolean} [isRspack]
  * @property {boolean} [isExperimental]
@@ -34,7 +34,7 @@ function getJobMarker(jobName) {
  *   section.
  */
 
-// The `pnpm test-*` command that reproduces the suite run.
+// The `bun run test-*` command that reproduces the suite run.
 function buildTestCommand(suite) {
   const script = suite.mode
     ? `test-${suite.mode}${suite.isExperimental ? '-experimental' : ''}${

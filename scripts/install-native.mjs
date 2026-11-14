@@ -98,7 +98,7 @@ import { outdent } from 'outdent'
     if (preferOffline) {
       args.push('--prefer-offline')
     }
-    await execa('pnpm', args, { cwd: tmpdir })
+    await execa('bun', args, { cwd: tmpdir })
 
     /** @type {string[]} */
     let pkgs

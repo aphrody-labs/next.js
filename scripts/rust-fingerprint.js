@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Write the turbo-computed TURBO_HASH to a stamp file.
 // This is used as a turbo task whose only purpose is to compute
 // a fingerprint of all Rust inputs. The build_and_deploy workflow

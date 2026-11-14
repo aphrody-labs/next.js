@@ -438,12 +438,22 @@ impl RuntimeVersions {
     }
 }
 
+/// JavaScript runtime binary that runs the Node.js-compatible processes (aphrody-labs: Bun by
+/// default). `TURBOPACK_JS_RUNTIME` overrides it, e.g. `node` or an absolute path.
+pub fn js_runtime() -> String {
+    std::env::var("TURBOPACK_JS_RUNTIME")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| "bun".to_string())
+}
+
 #[turbo_tasks::function]
 pub async fn get_current_nodejs_version(env: Vc<Box<dyn ProcessEnv>>) -> Result<Vc<RcStr>> {
     let path_read = env.read(rcstr!("PATH")).await?;
     let path = path_read.as_ref().context("env must have PATH")?;
-    let mut cmd = Command::new("node");
-    cmd.arg("--version");
+    // `-p process.version` prints the Node.js version both Node.js and Bun implement.
+    let mut cmd = Command::new(js_runtime());
+    cmd.args(["-p", "process.version"]);
     cmd.env_clear();
     cmd.env("PATH", path);
     cmd.stdin(Stdio::piped());
@@ -453,7 +463,7 @@ pub async fn get_current_nodejs_version(env: Vc<Box<dyn ProcessEnv>>) -> Result<
 
     if !output.status.success() {
         bail!(
-            "'node --version' command failed{}{}",
+            "'<runtime> -p process.version' command failed{}{}",
             output
                 .status
                 .code()
@@ -466,7 +476,7 @@ pub async fn get_current_nodejs_version(env: Vc<Box<dyn ProcessEnv>>) -> Result<
     }
 
     let version = String::from_utf8(output.stdout)
-        .context("failed to parse 'node --version' output as utf8")?;
+        .context("failed to parse '<runtime> -p process.version' output as utf8")?;
     if let Some(version_number) = version.strip_prefix("v") {
         Ok(Vc::cell(version_number.trim().into()))
     } else {

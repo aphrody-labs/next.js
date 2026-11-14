@@ -15,7 +15,7 @@
   "bin": "dist/cli.js",
   "scripts": {
     "lint": "eslint src/",
-    "test": "node --import tsx --test src/**/*-test.ts",
+    "test": "bun --import tsx --test src/**/*-test.ts",
     "build": "tsc"
   },
   "files": [

@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "eval:setup": "node eval-setup.mjs",
+    "eval:setup": "bun eval-setup.mjs",
     "dev": "next dev --port 3100",
     "build": "next build",
     "start": "next start"

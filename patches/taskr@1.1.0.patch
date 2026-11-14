@@ -15,3 +15,26 @@ index c961a997bfb5791383173e3444d18aed4194b21b..3810e74562d17abda9603080fcdbf2d2
  	}
  
  	*serial(tasks, opts) {
+diff --git a/lib/utils/find.js b/lib/utils/find.js
+index d7d6d0c2f74def9eb2ef5cb294262cd9abd56e4b..13824b903cbc527f48fa0e1dbd24e14358165c32 100644
+--- a/lib/utils/find.js
++++ b/lib/utils/find.js
+@@ -1,8 +1,7 @@
+ 'use strict';
+ 
+ const p = require('path');
+-const promisify = require('bluebird').promisify;
+-const glob = promisify(require('glob'));
++const fs = require('fs');
+ 
+ /**
+  * Find a file from a given path
+@@ -11,5 +10,7 @@ const glob = promisify(require('glob'));
+  * @yield {String}       The file's full path or `null`.
+  */
+ module.exports = function (file, dir) {
+-	return glob(p.resolve(dir || '.', file)).then(arr => arr.length ? p.normalize(arr[0]) : null);
++	// A stat, not a glob: glob drops the match under load (parallel turbo builds under Bun).
++	const full = p.resolve(dir || '.', file);
++	return Promise.resolve(fs.existsSync(full) ? p.normalize(full) : null);
+ }

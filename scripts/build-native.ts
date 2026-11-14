@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
@@ -11,11 +11,11 @@ const nextSwcDir = path.join(NEXT_DIR, 'packages/next-swc')
 export default async function buildNative(
   buildNativeArgs: string[]
 ): Promise<void> {
-  const buildCommand = ['pnpm', 'run', 'build-native', ...buildNativeArgs]
+  const buildCommand = ['bun', 'run', 'build-native', ...buildNativeArgs]
   logCommand('Build native bindings', buildCommand)
   await execa(buildCommand[0], buildCommand.slice(1), {
     cwd: nextSwcDir,
-    // Without a shell, `pnpm run build-native` returns a 0 exit code on SIGINT?
+    // Without a shell, `bun run build-native` returns a 0 exit code on SIGINT?
     shell: true,
     env: {
       NODE_ENV: process.env.NODE_ENV,
@@ -48,7 +48,7 @@ async function writeTypes() {
   const generatedTypesMarker = '// GENERATED-TYPES-BELOW\n'
   const generatedNotice =
     '// DO NOT MANUALLY EDIT THESE TYPES\n' +
-    '// You can regenerate this file by running `pnpm swc-build-native` in the root of the repo.\n\n'
+    '// You can regenerate this file by running `bun run swc-build-native` in the root of the repo.\n\n'
 
   const generatedTypes = await fs.readFile(generatedTypesPath, 'utf8')
   let vendoredTypes = await fs.readFile(vendoredTypesPath, 'utf8')

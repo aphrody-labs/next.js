@@ -2769,7 +2769,7 @@ export async function build(task, opts) {
 export async function generate_types(task, opts) {
   const watchmode = opts.dev
   const typesPromise = execa(
-    'pnpm',
+    'bun',
     [
       'run',
       'types',

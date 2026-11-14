@@ -61,7 +61,7 @@ function hasRustChanges(sinceCommit) {
 
 function buildNative() {
   console.log('Running swc-build-native...')
-  execSync('pnpm run swc-build-native', {
+  execSync('bun run swc-build-native', {
     cwd: ROOT_DIR,
     stdio: 'inherit',
     env: {

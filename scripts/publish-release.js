@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // @ts-check
 
 const path = require('path')
@@ -60,7 +60,7 @@ const publishRetryDelaySeconds = 15
     let output = ''
     try {
       await publishSema.acquire()
-      const child = execa('pnpm', args, { stdio: 'pipe' })
+      const child = execa('bun', args, { stdio: 'pipe' })
       const handleData = (type) => (chunk) => {
         process[type].write(chunk)
         output += chunk.toString()
@@ -233,7 +233,7 @@ const publishRetryDelaySeconds = 15
     // keeps working with newer Next.js minors.
     // TODO: Use `|| workspace:*` once pnpm supports that. Only a lone `workspace:*`
     // works at the moment
-    const pnpmListJson = await execa('pnpm', [
+    const pnpmListJson = await execa('bun', [
       '--silent',
       '--recursive',
       '--filter',
