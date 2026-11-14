@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Canonical store for all bench data: one SQLite file holding raw
 // measurements and artifacts, written only by this importer — no
 // derived statistics, no hand-entered numbers. The per-VM JSONL files
@@ -15,7 +15,7 @@ import path from 'node:path'
 import zlib from 'node:zlib'
 import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { DatabaseSync } from 'node:sqlite'
+import { Database as DatabaseSync } from 'bun:sqlite'
 import { loadConfig } from './config.mjs'
 
 const SCHEMA = `

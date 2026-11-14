@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Usage: node bench-status.mjs [--all]
 //
 // The only reliable way to know what's in flight. Session restarts silently

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'

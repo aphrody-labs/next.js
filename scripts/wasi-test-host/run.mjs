@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Cargo target runner for `wasm32-wasip1-threads` test binaries that link `turbo-tasks`.
  *

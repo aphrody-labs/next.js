@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Recover a run whose local launcher died (session teardown, crash):
 // the remote VMs keep executing their detached loops regardless, so the
 // data is usually still there. Reads the run's status.json for the VM

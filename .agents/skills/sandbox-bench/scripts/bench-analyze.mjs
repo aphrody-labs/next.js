@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Post-hoc (re-)analysis of runs at the boot level. Reads ONLY the
 // results db: a run-dir argument is imported (idempotently) and
 // verified first, a bare run id analyzes what the db already holds.

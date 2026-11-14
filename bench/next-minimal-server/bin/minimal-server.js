@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 process.env.NODE_ENV = 'production'
 
 require('../../../test/lib/react-channel-require-hook')

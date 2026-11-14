@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // Correctness gate for React arms before spending bench compute: each
 // arm gets a sandbox VM booted from the shared react build-env snapshot
 // (created lazily if missing), extracts the arm's tree over the
