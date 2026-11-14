@@ -69,6 +69,13 @@ lto = "thin"
 # this _should_ have similar effect to fat LTO.
 codegen-units = 1
 
+# aphrody-labs: release + explicit ThinLTO, used by scripts/aphrody/build-native-xlto.ts. That script adds
+# cross-language LTO (rustc -Clinker-plugin-lto, C deps by clang-cl -flto=thin, linked by lld-link; same LLVM major required).
+# `lto = "thin"` and `codegen-units = 1` are inherited from `release`; panic stays unwind (napi catches panics).
+[profile.release-xlto]
+inherits = "release"
+lto = "thin"
+
 # Use a custom profile for CI or local testing where we are somewhat performance
 # sensitive but we still want the additional validation of debug-assertions.
 #

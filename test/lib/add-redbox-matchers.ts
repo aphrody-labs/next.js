@@ -13,7 +13,7 @@ import {
   getRedboxTotalErrorCount,
   openRedbox,
 } from './next-test-utils'
-import type { Playwright } from './browsers/playwright'
+import type { Playwright } from './browsers/bun-webview'
 import { NextInstance } from 'e2e-utils'
 
 declare global {

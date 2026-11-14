@@ -3,13 +3,19 @@ import {
   Permissions,
   Playwright,
   PlaywrightNavigationWaitUntil,
-} from './browsers/playwright'
-import { Page } from 'playwright'
+} from './browsers/bun-webview'
+import { Page } from './browsers/bun-webview'
 
 export type { Playwright }
 
 if (!process.env.TEST_FILE_PATH) {
-  process.env.TEST_FILE_PATH = module.parent!.filename
+  // CommonJS (`module.parent`) under Jest; under `bun test` the ESM test file has no
+  // `module`, so fall back to the test file named on the command line.
+  process.env.TEST_FILE_PATH =
+    (typeof module !== 'undefined' && module.parent?.filename) ||
+    require('path').resolve(
+      process.argv.find((arg) => /\.test\.[cm]?[jt]sx?$/.test(arg)) ?? 'unknown.test.ts'
+    )
 }
 
 ;(global as any).browserName = process.env.BROWSER_NAME || 'chrome'
@@ -129,7 +135,7 @@ export default async function webdriver(
     appPortOrUrl = baseUrl
   }
 
-  const { Playwright, quit } = await import('./browsers/playwright')
+  const { Playwright, quit } = await import('./browsers/bun-webview')
   browserQuit = quit
 
   const browser = new Playwright()

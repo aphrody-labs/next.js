@@ -26,7 +26,7 @@ import _pkg from 'next/package.json'
 
 import type { SpawnOptions, ChildProcess } from 'child_process'
 import type { NextServer } from 'next/dist/server/next'
-import type { Playwright } from './browsers/playwright'
+import type { Playwright } from './browsers/bun-webview'
 import { recursiveReadDir } from 'next/dist/lib/recursive-readdir'
 
 import { shouldUseTurbopack } from './turbo'

@@ -1,7 +1,5 @@
 //@ts-check
 
-const { chromium, firefox, webkit } = require('playwright')
-
 /**
  * Tells the browser launcher which host to redirect, as `<hostname>=<address>`.
  * A deploy test sets this when it redirects the deployment host inside the test
@@ -12,50 +10,38 @@ const { chromium, firefox, webkit } = require('playwright')
 const PROXY_HOST_MAP_ENV_KEY = 'NEXT_TEST_PROXY_HOST_MAP'
 
 /**
- * Maps a test browser name (`BROWSER_NAME`) to a Playwright `BrowserType` and
- * the launch options we always use for it.
+ * Maps a test browser name (`BROWSER_NAME`) to the `Bun.WebView` backend and the
+ * launch options we always use for it. Used by `test/lib/browsers/bun-webview.ts`.
  *
- * This is a plain CommonJS module so it can be shared between `run-tests.js`
- * (which launches a browser server that's reused across all test suites) and
- * `test/lib/browsers/playwright.ts` (which launches its own browser when no
- * shared server is available, e.g. when running a test directly via the jest
- * CLI). Both must launch the browser with identical options.
+ * - `chrome` (default): Chrome-family browser found by Bun (`BUN_CHROME_PATH`,
+ *   `$PATH`, standard install locations; the preinstalled Edge on Windows).
+ * - `safari`: the system WKWebView, macOS only.
  *
  * @param {string} browserName
- * @param {{ headless: boolean }} options
- * @returns {{
- *   browserType: import('playwright').BrowserType,
- *   launchOptions: import('playwright').LaunchOptions,
- * }}
+ * @returns {object}
  */
-function getBrowserLaunch(browserName, { headless }) {
+function getBackend(browserName) {
   if (browserName === 'safari') {
-    return { browserType: webkit, launchOptions: { headless } }
-  } else if (browserName === 'firefox') {
-    return {
-      browserType: firefox,
-      launchOptions: {
-        headless,
-        firefoxUserPrefs: {
-          // The "fission.webContentIsolationStrategy" pref must be
-          // set to 1 on Firefox due to the bug where a new history
-          // state is pushed on a page reload.
-          // See https://github.com/microsoft/playwright/issues/22640
-          // See https://bugzilla.mozilla.org/show_bug.cgi?id=1832341
-          'fission.webContentIsolationStrategy': 1,
-        },
-      },
-    }
-  } else {
-    return {
-      browserType: chromium,
-      launchOptions: {
-        headless,
-        args: headless ? [] : ['--auto-open-devtools-for-tabs'],
-        ignoreDefaultArgs: ['--disable-back-forward-cache'],
-      },
-    }
+    return 'webkit'
+  }
+
+  // A deploy test can redirect the deployment host to a proxy address inside
+  // this process. The patched `dns.lookup` reaches only this process, so the
+  // browser needs the same mapping through a launch argument.
+  const [mappedHostname, mappedAddress] =
+    process.env[PROXY_HOST_MAP_ENV_KEY]?.split('=') ?? []
+  const argv =
+    mappedHostname && mappedAddress
+      ? [`--host-rules=MAP ${mappedHostname} ${mappedAddress}`]
+      : []
+
+  return {
+    type: 'chrome',
+    // Always spawn a private headless browser, never attach to a running one.
+    url: false,
+    ...(process.env.BUN_CHROME_PATH ? { path: process.env.BUN_CHROME_PATH } : {}),
+    argv,
   }
 }
 
-module.exports = { getBrowserLaunch, PROXY_HOST_MAP_ENV_KEY }
+module.exports = { getBackend, PROXY_HOST_MAP_ENV_KEY }

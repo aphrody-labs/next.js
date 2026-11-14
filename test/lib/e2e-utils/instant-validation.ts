@@ -5,7 +5,7 @@ import {
 } from '../add-redbox-matchers'
 import { getDeterministicOutput } from '../../e2e/app-dir/cache-components-errors/utils'
 import { inspect } from 'util'
-import type { Playwright } from '../browsers/playwright'
+import type { Playwright } from '../browsers/bun-webview'
 import type { NextInstance } from '../next-modes/base'
 import type {
   ValidationEvent,

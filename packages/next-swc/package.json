@@ -12,7 +12,7 @@
     "build-native-release": "napi build --platform -p next-napi-bindings --manifest-path ../../Cargo.toml --release --features tracing/release_max_level_trace --no-js -o native",
     "build-native-release-with-assertions": "napi build --platform -p next-napi-bindings --manifest-path ../../Cargo.toml --profile release-with-assertions --features tracing/release_max_level_trace --no-js -o native",
     "build-native-wasi": "napi build --platform --target wasm32-wasip1-threads -p next-napi-bindings --manifest-path ../../Cargo.toml --no-default-features -o native",
-    "build-wasm": "wasm-pack build ../../crates/wasm --scope=next",
+    "build-wasm": "bun ../../scripts/aphrody/build-wasm.ts",
     "cache-build-native": "[ -d native ] && echo $(ls native)",
     "rust-fingerprint": "bun ../../scripts/rust-fingerprint.js",
     "rust-check-clippy": "cargo clippy --workspace --all-targets -- -D warnings -A deprecated",
@@ -21,7 +21,8 @@
     "rust-check-napi": "cargo check -p next-napi-bindings",
     "test-cargo-unit": "cargo nextest run --workspace --exclude next-napi-bindings --exclude turbo-tasks-macros --cargo-profile release-with-assertions --no-fail-fast && cargo test --workspace --doc --profile=release-with-assertions --no-fail-fast",
     "test-cargo-unit-ci": "cargo nextest run --workspace --exclude next-napi-bindings --exclude turbo-tasks-macros --features turbo-tasks-fs/ci --cargo-profile release-with-assertions --no-fail-fast && cargo test --workspace --doc --features turbo-tasks-fs/ci --profile=release-with-assertions --no-fail-fast",
-    "test-cargo-unit-miri": "MIRIFLAGS='-Zmiri-disable-isolation -Zmiri-permissive-provenance' cargo miri nextest run -p turbo-persistence -p turbo-rcstr -p turbo-tasks-malloc --no-default-features --features turbo-tasks-malloc/custom_allocator --no-fail-fast"
+    "test-cargo-unit-miri": "MIRIFLAGS='-Zmiri-disable-isolation -Zmiri-permissive-provenance' cargo miri nextest run -p turbo-persistence -p turbo-rcstr -p turbo-tasks-malloc --no-default-features --features turbo-tasks-malloc/custom_allocator --no-fail-fast",
+    "build-native-release-xlto": "bun ../../scripts/aphrody/build-native-xlto.ts"
   },
   "napi": {
     "binaryName": "next-swc",
@@ -39,7 +40,6 @@
     ]
   },
   "devDependencies": {
-    "@napi-rs/cli": "3.7.2",
-    "wasm-pack": "0.13.1"
+    "@napi-rs/cli": "3.7.2"
   }
 }

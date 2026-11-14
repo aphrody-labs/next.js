@@ -563,6 +563,9 @@ function wrapTestGlobals(): void {
     if (typeof original !== 'function' || original.__gateWrapped) continue
 
     const wrapped = new Proxy(original, {
+      // Bun implements modifiers such as `.failing` as getters that need the
+      // real function as receiver.
+      get: (target, prop) => Reflect.get(target, prop, target),
       apply(target, thisArg, args: any[]) {
         const [name, callback, timeout] = args
         if (
@@ -613,6 +616,9 @@ function wrapHookGlobals(): void {
     if (typeof original !== 'function' || original.__gateWrapped) continue
 
     const wrapped = new Proxy(original, {
+      // Bun implements modifiers such as `.failing` as getters that need the
+      // real function as receiver.
+      get: (target, prop) => Reflect.get(target, prop, target),
       apply(target, thisArg, args: any[]) {
         const [callback] = args
         if (

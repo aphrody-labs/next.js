@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Set up environment variables for a Next.js jest test run and exec jest
+# Set up environment variables for a Next.js test run and exec bun test
 # in a single hop, replacing this shell process.
 #
 # Usage:
@@ -9,9 +9,9 @@
 #     [--bundler=<webpack|turbo|rspack>] \
 #     [--experimental] \
 #     [--headless] \
-#     -- [jest args...]
+#     -- [bun test args...]
 #
-# All arguments after `--` are forwarded verbatim to jest.
+# All arguments after `--` are forwarded verbatim to bun test.
 
 set -eo pipefail
 
@@ -56,7 +56,4 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# Resolves to `node_modules/.bin/jest` via `$PATH`. This relies on being
-# invoked through pnpm (or another package runner), which prepends the
-# workspace's `node_modules/.bin/` to `$PATH` before running the script.
-exec jest --runInBand "$@"
+exec bun test --isolate --max-concurrency=1 "$@"

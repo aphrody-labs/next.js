@@ -1,9 +1,9 @@
 import {
   Request as PlaywrightRequest,
   Response as PlaywrightResponse,
-} from 'playwright'
+} from '../browsers/bun-webview'
 import { inspect } from 'node:util'
-import { Playwright } from '../browsers/playwright'
+import { Playwright } from '../browsers/bun-webview'
 
 export type RequestMatcherObject = {
   pathname: string

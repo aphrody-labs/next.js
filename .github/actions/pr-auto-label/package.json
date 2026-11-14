@@ -3,7 +3,7 @@
   "description": "Applies labels to a pull request based on changed files and author.",
   "scripts": {
     "build": "ncc build src/index.ts -m -o dist --license licenses.txt",
-    "types": "tsc --noEmit"
+    "types": "bun check --no-script"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",

@@ -13,7 +13,7 @@ import {
   getRedboxErrorLink,
 } from './next-test-utils'
 import type { NextInstance } from './next-modes/base'
-import type { Playwright } from './browsers/playwright'
+import type { Playwright } from './browsers/bun-webview'
 
 export async function waitForHydration(browser: Playwright) {
   await browser.eval(() => {

@@ -3,7 +3,7 @@
   "description": "Read-only CI gate for branch-based pull request stacks",
   "scripts": {
     "build": "ncc build src/index.ts -m -o dist --license licenses.txt",
-    "types": "tsc --noEmit",
+    "types": "bun check --no-script",
     "test": "jest --config jest.config.cjs --runInBand"
   },
   "dependencies": {

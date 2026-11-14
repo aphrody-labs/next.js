@@ -22,7 +22,7 @@ import {
 } from '../gate/runtime'
 
 export type { NextInstance }
-export type { Playwright } from '../browsers/playwright'
+export type { Playwright } from '../browsers/bun-webview'
 
 const individualTestTimeout = 60 * 1000
 

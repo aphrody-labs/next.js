@@ -10,7 +10,6 @@ const { promisify } = require('util')
 const { Sema } = require('async-sema')
 const { spawn, exec: execOrig } = require('child_process')
 const { createNextInstall } = require('./test/lib/create-next-install')
-const { getBrowserLaunch } = require('./test/lib/browsers/launch')
 const glob = promisify(_glob)
 const exec = promisify(execOrig)
 const core = require('@actions/core')
@@ -203,7 +202,7 @@ const externalTestsFilter = getTestFilter()
 const timings = []
 const DEFAULT_NUM_RETRIES = 2
 const DEFAULT_CONCURRENCY = 2
-const RESULTS_EXT = `.results.json`
+const RESULTS_EXT = `.results.xml`
 const isTestJob = !!process.env.NEXT_TEST_JOB
 const KV_TIMINGS_KEY = 'test-timings'
 
@@ -346,15 +345,39 @@ async function maybeLogSummary() {
   }
 }
 
-let exiting = false
-
 /**
- * Browser server shared across all test suites. Suites connect to it via
- * `test/lib/browsers/playwright.ts` instead of each launching their own
- * browser process.
- * @type {import('playwright').BrowserServer | undefined}
+ * Converts the junit XML written by `bun test --reporter=junit` into the small
+ * subset of the Jest JSON result shape the tooling below consumes.
+ * @param {string} xml
  */
-let sharedBrowserServer
+function junitToResults(xml) {
+  const decode = (s) =>
+    s
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+  const assertionResults = []
+  for (const m of xml.matchAll(/<testcase\b([^>]*?)(\/>|>([\s\S]*?)<\/testcase>)/g)) {
+    const name = decode(/\bname="([^"]*)"/.exec(m[1])?.[1] ?? '')
+    const body = m[3] ?? ''
+    const status = /<failure\b|<error\b/.test(body)
+      ? 'failed'
+      : /<skipped\b/.test(body)
+        ? 'pending'
+        : 'passed'
+    const parts = name.split(' > ')
+    assertionResults.push({
+      status,
+      title: parts.pop(),
+      ancestorTitles: parts,
+    })
+  }
+  return { testResults: [{ assertionResults }] }
+}
+
+let exiting = false
 
 /**
  * @type {string | undefined}
@@ -368,11 +391,6 @@ const cleanUpAndExit = async (code) => {
   exiting = true
   console.log(`exiting with code ${code}`)
 
-  if (sharedBrowserServer) {
-    await sharedBrowserServer.close().catch((err) => {
-      console.error('Failed to close shared browser server:', err)
-    })
-  }
   if (process.env.NEXT_TEST_STARTER) {
     await fsp.rm(process.env.NEXT_TEST_STARTER, {
       recursive: true,
@@ -713,23 +731,8 @@ ${ENDGROUP}`)
     console.log(`${ENDGROUP}`)
   }
 
-  // best-effort, don't spawn a browser for unit tests, if we don't spawn a
-  // browser but should've, that's okay, `next-webdriver` will still set it up
-  if (
-    !options.dry &&
-    ((options.type && options.type !== 'unit') ||
-      tests.some((test) => !testFilters.unit.test(test.file)))
-  ) {
-    // Launch a single browser server shared by all test suites, instead of
-    // each suite launching its own browser process. Suites connect to it via
-    // the ws endpoint env var in `test/lib/browsers/playwright.ts`.
-    const { browserType, launchOptions } = getBrowserLaunch(
-      process.env.BROWSER_NAME || 'chrome',
-      { headless: true } // matches per-test env below
-    )
-    sharedBrowserServer = await browserType.launchServer(launchOptions)
-    process.env.NEXT_TEST_BROWSER_WS_ENDPOINT = sharedBrowserServer.wsEndpoint()
-  }
+  // Each test process drives its own headless browser through Bun.WebView
+  // (test/lib/browsers/bun-webview.ts); nothing to start here.
 
   // Expand after sharding so all runs of each suite share a runner and browser.
   const testRuns = tests.flatMap((test) =>
@@ -748,12 +751,7 @@ ${ENDGROUP}`)
   const sema = new Sema(options.concurrency, { capacity: testRuns.length })
   const outputSema = new Sema(1, { capacity: testRuns.length })
   const children = new Set()
-  const jestPath = path.join(
-    __dirname,
-    'node_modules',
-    '.bin',
-    `jest${process.platform === 'win32' ? '.CMD' : ''}`
-  )
+  const bunPath = process.execPath
   let firstError = true
   let hadFailures = false
 
@@ -797,19 +795,21 @@ ${ENDGROUP}`)
       let outputChunks = []
 
       const args = [
-        ...(process.env.CI ? ['--ci'] : []),
-        '--runInBand',
-        '--forceExit',
-        '--no-cache',
-        '--verbose',
+        'test',
+        '--isolate',
+        '--max-concurrency=1',
+        `--timeout=${(process.platform === 'win32' ? 180 : 60) * 1000}`,
         ...(isTestJob
-          ? ['--json', `--outputFile=${getTestRunId(testRun)}${RESULTS_EXT}`]
+          ? [
+              '--reporter=junit',
+              `--reporter-outfile=${getTestRunId(testRun)}${RESULTS_EXT}`,
+            ]
           : []),
         testRun.file,
         ...(testRun.excludedCases.length === 0
           ? []
           : [
-              '--testNamePattern',
+              '--test-name-pattern',
               `^(?!(?:${testRun.excludedCases.map(escapeRegexp).join('|')})$).`,
             ]),
       ]
@@ -891,7 +891,7 @@ ${ENDGROUP}`)
       stdout(
         [
           ...Object.entries(env).map((e) => `${e[0]}=${e[1]}`),
-          jestPath,
+          bunPath,
           ...args.map((a) => `'${a}'`),
         ].join(' ') + '\n'
       )
@@ -901,7 +901,7 @@ ${ENDGROUP}`)
         return resolve(new Date().getTime() - start)
       }
 
-      const child = spawn(jestPath, args, {
+      const child = spawn(bunPath, args, {
         stdio: ['ignore', 'pipe', 'pipe'],
         env: {
           ...process.env,
@@ -1113,7 +1113,7 @@ ${ENDGROUP}`)
           `${getTestRunId(testRun)}${RESULTS_EXT}`,
           'utf8'
         )
-        const obj = JSON.parse(testsOutput)
+        const obj = junitToResults(testsOutput)
 
         // Extract failed test case names from Jest JSON output
         if (!passed && process.env.CI) {

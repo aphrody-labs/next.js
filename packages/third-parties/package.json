@@ -19,7 +19,7 @@
   "scripts": {
     "build": "bun ../../scripts/rm.mjs dist && tsc -d -p tsconfig.json",
     "dev": "tsc -d -w -p tsconfig.json",
-    "typescript": "tsc --noEmit -p tsconfig.json",
+    "typescript": "bun check --no-script --project tsconfig.json",
     "pack-for-isolated-tests": "bun run pack --out ./packed.tgz"
   },
   "dependencies": {

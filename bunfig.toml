@@ -8,3 +8,164 @@ minimumReleaseAgeExcludes = ["@mswjs/interceptors@0.42.6","@next/*","@turbo/*","
 [run]
 # `node` in scripts and shebangs resolves to Bun.
 bun = true
+
+# Replaces eslint.config.mjs / eslint.cli.config.mjs (ESLint is no longer used to lint this repo).
+[lint]
+plugins = ["./packages/eslint-plugin-internal/src/eslint-plugin-internal.js", { name = "jsdoc-js", specifier = "eslint-plugin-jsdoc" }]
+ignorePatterns = ["examples/with-oxlint/", "test/development/app-dir/hmr-symlink/app/", "test/e2e/babel/fixture/", "examples/cms-sanity/", "examples/with-flow/", "examples/with-jest-babel/", "examples/with-react-intl/", "examples/with-supabase/", "evals/next-upgrade/apps/member-dashboard/next-13/", "test/unit/eslint-config-next/", ".*/", "node_modules", ".next/", "_next/", ".vscode/", "dist/", "e2e-tests/", "examples/cms-sanity/sanity.types.ts", "examples/with-eslint/", "examples/with-typescript-eslint-jest/", "examples/with-kea/", "examples/with-custom-babel-config/", "examples/with-flow/", "examples/with-jest/", "examples/with-mobx-state-tree/", "examples/with-mobx/", "packages/next/src/bundles/webpack/packages/*.runtime.js", "packages/next/src/bundles/webpack/packages/lazy-compilation-*.js", "packages/next/src/compiled/", "packages/next/wasm/@next", "packages/react-refresh-utils/**/*.js", "packages/react-dev-overlay/lib/", "__tmp__/", ".github/actions/next-stats-action/.work", "packages/next-codemod/transforms/__testfixtures__/", "packages/next-codemod/transforms/__tests__/", "packages/next-codemod/bin/__testfixtures__/", "packages/next-codemod/**/*.js", "packages/next-codemod/**/*.d.ts", "packages/next-env/**/*.d.ts", "packages/create-next-app/templates/", "test/development/basic/legacy-decorators/**/*.js", "test/production/emit-decorator-metadata/**/*.js", "test/**/*.graphql.ts", "!test/**/*.test.*", "test/e2e/app-dir/rsc-errors/app/swc/use-client/page.js", "test-timings.json", "crates/", "bench/nested-deps/", "bench/nested-deps-app-router/", "bench/heavy-npm-deps/", "packages/next-bundle-analyzer/index.d.ts", "examples/with-typescript-graphql/lib/gql/", "test/development/basic/hmr/components/parse-error.js", "test/development/mcp-server/fixtures/default-template/app/build-error/page.tsx", "test/development/mcp-server/fixtures/compilation-errors-app/app/syntax-error/page.tsx", "test/production/debug-build-path/fixtures/with-compile-error/app/broken/page.tsx", "packages/next-swc/native/index.d.ts", "packages/next-swc/docs/assets/", "test/e2e/app-dir/server-source-maps/fixtures/default/internal-pkg/sourcemapped.js", "test/e2e/app-dir/server-source-maps/fixtures/default/external-pkg/sourcemapped.js", "test/development/next-lint-eslint-formatter-compact/**/*.js", "test/production/eslint-config-next/fixture/", "test/e2e/app-dir/app-external/app/mixed/import/mixed-mod.mjs", "turbopack/crates/*/tests/", "turbopack/crates/*/js/src/compiled", "evals/evals/*/", "!evals/evals/*/EVAL.ts"]
+
+[lint.settings.react]
+version = "detect"
+
+[lint.rules]
+no-unsafe-finally = "off"
+no-loss-of-precision = "off"
+no-async-promise-executor = "off"
+no-unsafe-optional-chaining = "off"
+no-constant-binary-expression = "off"
+no-debugger = "off"
+"react/jsx-key" = "off"
+array-callback-return = "error"
+default-case = ["error", { commentPattern = "^no default$" }]
+eqeqeq = ["error", "smart"]
+no-array-constructor = "error"
+no-caller = "error"
+no-cond-assign = ["error", "except-parens"]
+no-const-assign = "error"
+no-control-regex = "error"
+no-delete-var = "error"
+no-dupe-args = "error"
+no-dupe-class-members = "error"
+no-dupe-keys = "error"
+no-duplicate-case = "error"
+no-empty-character-class = "error"
+no-empty-pattern = "error"
+no-eval = "error"
+no-ex-assign = "error"
+no-extend-native = "error"
+no-extra-bind = "error"
+no-extra-label = "error"
+no-fallthrough = "error"
+no-func-assign = "error"
+no-implied-eval = "error"
+no-invalid-regexp = "error"
+no-iterator = "error"
+no-label-var = "error"
+no-labels = ["error", { allowLoop = true, allowSwitch = false }]
+no-lone-blocks = "error"
+no-loop-func = "error"
+no-multi-str = "error"
+no-new-func = "error"
+no-new-symbol = "error"
+no-new-wrappers = "error"
+no-obj-calls = "error"
+no-octal = "error"
+no-octal-escape = "error"
+no-regex-spaces = "error"
+no-restricted-imports = ["error", { patterns = [{ group = ["*/next-devtools/dev-overlay*"], message = "Use `next/dist/compiled/next-devtools` (`src/next-devtools/dev-overlay/entrypoint.ts`) instead. Prefer `src/next-devtools/shared/` for shared utils." }] }]
+no-restricted-syntax = ["error", "WithStatement", { message = "substr() is deprecated, use slice() or substring() instead", selector = "MemberExpression > Identifier[name='substr']" }, { selector = "BinaryExpression[left.object.name='workUnitStore'][left.property.name='type'][operator=/^(?:===|!==)$/]", message = "Use an exhaustive switch on `workUnitStore.type` (with a `never`-based default) instead of using if statements or ternaries." }, { selector = "BinaryExpression[left.type='ChainExpression'][left.expression.object.name='workUnitStore'][left.expression.property.name='type'][operator=/^(?:===|!==)$/]", message = "Use an exhaustive switch on `workUnitStore.type` (with a `never`-based default) instead of using if statements or ternaries." }]
+no-script-url = "error"
+no-self-assign = "error"
+no-self-compare = "error"
+no-sequences = "error"
+no-shadow-restricted-names = "error"
+no-sparse-arrays = "error"
+no-template-curly-in-string = "error"
+no-this-before-super = "error"
+no-throw-literal = "error"
+no-undef = "error"
+no-unexpected-multiline = "error"
+no-unreachable = "error"
+no-unused-expressions = ["error", { allowShortCircuit = true, allowTernary = true, allowTaggedTemplates = true }]
+no-unused-labels = "error"
+no-unused-vars = ["error", { args = "none", caughtErrors = "none", ignoreRestSiblings = true }]
+no-useless-computed-key = "error"
+no-useless-concat = "error"
+no-useless-constructor = "error"
+no-useless-escape = "error"
+no-useless-rename = ["error", { ignoreDestructuring = false, ignoreImport = false, ignoreExport = false }]
+no-with = "error"
+"react-hooks/exhaustive-deps" = "error"
+require-yield = "error"
+strict = ["error", "never"]
+unicode-bom = ["error", "never"]
+use-isnan = "error"
+valid-typeof = "error"
+getter-return = "error"
+"react/forbid-foreign-prop-types" = ["error", { allowInPropTypes = true }]
+"react/jsx-no-comment-textnodes" = "error"
+"react/jsx-no-duplicate-props" = "error"
+"react/jsx-no-target-blank" = "error"
+"react/jsx-no-undef" = "error"
+"react/jsx-pascal-case" = ["error", { allowAllCaps = true, ignore = [] }]
+"react/no-danger-with-children" = "error"
+"react/no-deprecated" = "error"
+"react/no-direct-mutation-state" = "error"
+"react/no-is-mounted" = "error"
+"react/react-in-jsx-scope" = "off"
+"react/require-render-return" = "error"
+"react/style-prop-object" = "error"
+"react-hooks/rules-of-hooks" = "error"
+"@typescript-eslint/prefer-as-const" = "error"
+"@typescript-eslint/no-redeclare" = ["error", { builtinGlobals = false, ignoreDeclarationMerge = true }]
+
+[[lint.overrides]]
+files = ["test/**/*.js", "test/**/*.ts", "test/**/*.tsx", "**/*.test.ts", "**/*.test.tsx"]
+excludeFiles = ["test/tmp/**"]
+rules = { "jest/expect-expect" = "off", "jest/no-disabled-tests" = "off", "jest/no-conditional-expect" = "off", "jest/valid-title" = "off", "jest/no-interpolation-in-snapshots" = "off", "jest/no-export" = "off", "jest/no-standalone-expect" = ["error", { additionalTestBlockFunctions = ["retry", "itSkipDeploy", "itCI", "itHeaded"] }] }
+
+[[lint.overrides]]
+files = ["**/*.ts", "**/*.tsx", "**/*.mts"]
+rules = { "no-undef" = "off", "@typescript-eslint/array-type" = "off", "@typescript-eslint/ban-ts-comment" = "off", "@typescript-eslint/ban-tslint-comment" = "off", "@typescript-eslint/no-empty-object-type" = "off", "@typescript-eslint/no-restricted-types" = "off", "@typescript-eslint/no-unsafe-function-type" = "off", "@typescript-eslint/no-wrapper-object-types" = "off", "@typescript-eslint/class-literal-property-style" = "off", "@typescript-eslint/consistent-generic-constructors" = "off", "@typescript-eslint/consistent-indexed-object-style" = "off", "@typescript-eslint/consistent-type-definitions" = "off", "@typescript-eslint/no-empty-function" = "off", "@typescript-eslint/no-namespace" = "off", "@typescript-eslint/no-shadow" = "off", "@typescript-eslint/no-empty-interface" = "off", "@typescript-eslint/no-explicit-any" = "off", "@typescript-eslint/no-inferrable-types" = "off", "@typescript-eslint/no-require-imports" = "off", "@typescript-eslint/no-var-requires" = "off", "@typescript-eslint/prefer-for-of" = "off", "@typescript-eslint/prefer-function-type" = "off", "@typescript-eslint/no-this-alias" = "off", "@typescript-eslint/triple-slash-reference" = "off", "@typescript-eslint/no-use-before-define" = "off", no-var = "off", prefer-const = "off", prefer-rest-params = "off", prefer-spread = "off", "@typescript-eslint/no-unused-expressions" = ["error", { allowShortCircuit = true, allowTernary = true, allowTaggedTemplates = true }], "@typescript-eslint/no-unused-vars" = ["error", { args = "none", ignoreRestSiblings = true, argsIgnorePattern = "^_", caughtErrors = "none", caughtErrorsIgnorePattern = "^_", destructuredArrayIgnorePattern = "^_", varsIgnorePattern = "^_" }], "@typescript-eslint/no-useless-constructor" = "error", "@typescript-eslint/prefer-literal-enum-member" = "error" }
+
+[[lint.overrides]]
+files = ["packages/**/*.ts", "packages/**/*.tsx"]
+rules = { "@next/internal/typechecked-require" = "error", "jsdoc-js/no-types" = "error", "jsdoc-js/no-undefined-types" = "error" }
+
+[[lint.overrides]]
+files = ["packages/next/src/server/**/*.{js,jsx,ts,tsx}"]
+rules = { "@next/internal/no-ambiguous-jsx" = "error" }
+
+[[lint.overrides]]
+files = ["packages/next/src/server/app-render/**/*.{ts,tsx}"]
+rules = { no-restricted-properties = ["error", { object = "req", property = "url", message = "Use the explicit `requestUrl` input instead." }] }
+
+[[lint.overrides]]
+files = ["packages/next/src/server/app-render/app-render.tsx"]
+rules = { no-restricted-properties = ["error", { object = "req", property = "url", message = "Use the explicit `requestUrl` input instead." }, { object = "req", property = "headers", message = "Use the explicit `requestHeaders` input instead." }], "@typescript-eslint/no-restricted-imports" = ["error", { paths = [{ name = "../../client/components/app-router-headers", importNames = ["NEXT_URL"], message = "Use the explicit route interception input instead." }], patterns = [{ group = ["**/request-meta"], allowTypeImports = true, message = "Pass request metadata through explicit render inputs." }] }] }
+
+[[lint.overrides]]
+files = ["examples/**/*"]
+rules = { "@typescript-eslint/no-use-before-define" = ["error", { functions = true, classes = true, variables = true, enums = true, typedefs = true }], "import/no-anonymous-default-export" = ["error", { allowArrowFunction = false, allowAnonymousClass = false, allowAnonymousFunction = false, allowArray = true, allowCallExpression = true, allowLiteral = true, allowObject = true }] }
+
+[[lint.overrides]]
+files = ["packages/**"]
+excludeFiles = ["packages/next/taskfile*.js", "packages/next/next-devtools.webpack-config.js", "packages/next/next-runtime.webpack-config.js"]
+rules = { no-shadow = ["error", { builtinGlobals = false }], "import/no-extraneous-dependencies" = ["error", { devDependencies = false }] }
+
+[[lint.overrides]]
+files = ["packages/**/*.ts", "packages/**/*.tsx"]
+rules = { no-shadow = "off", "@typescript-eslint/no-shadow" = ["error", { builtinGlobals = false }], "@typescript-eslint/no-unused-vars" = ["error", { args = "all", argsIgnorePattern = "^_", caughtErrors = "none", ignoreRestSiblings = true, varsIgnorePattern = "^_" }], "@typescript-eslint/consistent-type-imports" = ["error", { disallowTypeAnnotations = false }], "@typescript-eslint/no-import-type-side-effects" = "error" }
+
+[[lint.overrides]]
+files = ["packages/next/src/next-devtools/dev-overlay/**/*.ts", "packages/next/src/next-devtools/dev-overlay/**/*.tsx"]
+rules = { "react-hooks/exhaustive-deps" = "error" }
+
+[[lint.overrides]]
+files = ["turbopack/crates/turbopack-tests/tests/**/*"]
+rules = { no-console = "off" }
+
+[lint.globals]
+__turbopack_emit__ = "readonly"
+__turbopack_collect__ = "readonly"
+
+# Replaces .prettierrc.json / .prettierignore (Prettier is no longer used).
+[fmt]
+trailingComma = "es5"
+singleQuote = true
+semi = false
+ignorePatterns = ["*.toml", "examples/with-custom-babel-config/", "test/production/app-dir/symbolic-links/src/", ".next/",".turbo/","_next/","__tmp__/","dist/","target/","compiled/",".config/ast-grep/rule-tests/__snapshots__/","test-timings.json","pnpm-lock.yaml","packages/next/src/bundles/webpack/packages/*.runtime.js","packages/next/src/bundles/webpack/packages/lazy-compilation-*.js","packages/next/wasm/@next",".github/actions/next-stats-action/.work","crates/**/tests/**/output*","crates/core/tests/loader/issue-32553/input.js",".claude-plugin/**/*.md","crates/next-custom-transforms/tests/errors/react-server-components/client-graph/use-client/input.js","crates/next-custom-transforms/tests/errors/react-server-components/server-graph/fake-client-entry/input.js","crates/next-custom-transforms/tests/errors/server-actions/server-graph/8/input.js","crates/next-custom-transforms/tests/errors/server-actions/server-graph/9/input.js","crates/next-custom-transforms/tests/errors/server-actions/server-graph/18/input.js","crates/next-custom-transforms/tests/fixture/optimize-barrel/normal/4/input.js","crates/next-custom-transforms/tests/fixture/react-server-components/client-graph/client-entry/input.js","crates/next-custom-transforms/tests/fixture/react-server-components/server-graph/client-entry/input.js","packages/next-swc/native/**/*","packages/next-swc/docs/assets/**/*","packages/next-codemod/transforms/__testfixtures__/**","packages/next-codemod/transforms/__tests__/**","packages/next-codemod/**/*.js","packages/next-codemod/**/*.d.ts","packages/next-env/**/*.d.ts","**/next-env.d.ts","test/**/out/**","test/development/basic/hmr/components/parse-error.js","test/production/debug-build-path/fixtures/with-compile-error/app/broken/page.tsx","bench/nested-deps/pages/**/*","bench/nested-deps/components/**/*","**/convex/_generated/**","**/.tina/__generated__/**","test/**/*.graphql.ts","test/e2e/app-dir/server-source-maps/fixtures/default/app/bad-sourcemap/page.js","test/e2e/app-dir/server-source-maps/fixtures/default/internal-pkg/ignored.js","test/e2e/app-dir/server-source-maps/fixtures/default/internal-pkg/sourcemapped.js","test/e2e/app-dir/server-source-maps/fixtures/default/external-pkg/sourcemapped.js","test/development/mcp-server/fixtures/default-template/app/build-error/page.tsx","test/development/mcp-server/fixtures/compilation-errors-app/app/syntax-error/page.tsx","/turbopack/crates/*/js/src/compiled","/turbopack/crates/turbopack/bench.json","/turbopack/crates/turbopack-ecmascript/tests/analyzer/graph","/turbopack/crates/turbopack-ecmascript/tests/benches","/turbopack/crates/turbopack-ecmascript/tests/tree-shaker","/turbopack/crates/next-transform-strip-page-exports/tests","/turbopack/crates/next-transform-dynamic/tests","/turbopack/crates/turbopack-tests/tests/execution/turbopack/basic/error/input/broken.js","/turbopack/crates/turbopack-tests/tests/execution/turbopack/exports/invalid-export-parse-error/input/invalid-export/broken.js","/turbopack/crates/turbopack-tests/tests/execution/turbopack/**/not-compiled.js","/turbopack/crates/turbopack-tests/tests/execution/turbopack/basic/ts-parse-error/input/other.ts","/turbopack/crates/turbopack-tests/tests/execution/turbopack/css/css-parse-error/input/style.css","/test/development/app-dir/css-parse-error-recovery/app/css-error/style.css","/turbopack/crates/turbopack-tests/tests/execution/turbopack/import-meta/cjs/input/mod.cjs","/turbopack/crates/turbopack-tests/tests/execution/turbopack/minification/pure-annotated-callee*/input/index.js","/turbopack/crates/turbopack-tests/tests/snapshot/source_maps/*","/turbopack/crates/turbopack-tests/tests/**/output*","/turbopack/crates/turbopack-tests/tests/**/static","/turbopack/crates/turbopack-tracing/tests/node-file-trace/test/unit/syntax-err/input.js","/turbopack/crates/turbopack-tracing/tests/node-file-trace/test/unit/tsx/lib.tsx","/apps/*/next-env.d.ts","/readme.md","test/development/app-dir/hmr-symlink/app/symlink-chain/page.tsx","test/development/app-dir/hmr-symlink/app/symlink-link/page.tsx","test/development/app-dir/ssr-in-rsc/node_modules/random-react-library","test/production/app-dir/symbolic-file-links/src/i18n.ts","test/production/app-dir/symbolic-file-links/src/app/layout.tsx","test/production/app-dir/symbolic-file-links/src/app/page.tsx","turbopack/crates/turbopack-tracing/tests/node-file-trace/integration/pnpm/node_modules/*","turbopack/crates/turbopack-tracing/tests/node-file-trace/integration/symlink-to-file/linked.js","turbopack/crates/turbopack-tests/tests/snapshot/swc_transforms/mono_transforms/input/node_modules/component"]
+
+# Replaces jest.config.js / jest.config.turbopack.js (Jest is no longer used).
+[test]
+preload = ["./test/bun-setup.ts"]

@@ -1,5 +1,5 @@
 import { retry } from 'next-test-utils'
-import type { Page } from 'playwright'
+import type { Page } from './browsers/bun-webview'
 import type { NextInstance } from './next-modes/base'
 
 const editedColor = 'rgb(9, 9, 9)'

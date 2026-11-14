@@ -1,4 +1,4 @@
-import type * as Playwright from 'playwright'
+import type * as Playwright from './browsers/bun-webview'
 import { diff } from 'jest-diff'
 import { equals } from '@jest/expect-utils'
 

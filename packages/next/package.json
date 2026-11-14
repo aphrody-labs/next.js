@@ -87,7 +87,7 @@
     "dev": "NEXT_SERVER_NO_MANGLE=1 taskr",
     "build": "taskr release",
     "types": "tsc --project tsconfig.build.json --declaration --emitDeclarationOnly --stripInternal --declarationDir dist",
-    "typescript": "tsc --noEmit",
+    "typescript": "bun check --no-script",
     "ncc-compiled": "taskr ncc",
     "storybook": "BROWSER=none storybook dev -p 6006",
     "build-storybook": "storybook build",
