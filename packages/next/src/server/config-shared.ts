@@ -715,6 +715,12 @@ export interface ExperimentalConfig {
   // https://github.com/GoogleChromeLabs/critters/blob/a590c05f9197b656d2aeaae9369df2483c26b072/packages/critters/src/index.d.ts
   optimizeCss?: boolean | Record<string, unknown>
   nextScriptWorkers?: boolean
+  /**
+   * Ship the `nomodule` polyfill bundle for browsers without ES module support.
+   * Off by default: the default target is Baseline Widely available, which all supports modules.
+   * @default false
+   */
+  legacyPolyfills?: boolean
   scrollRestoration?: boolean
   externalDir?: boolean
   disableOptimizedLoading?: boolean
@@ -2503,6 +2509,7 @@ export const defaultConfig = Object.freeze({
     proxyTimeout: undefined,
     optimizeCss: false,
     nextScriptWorkers: false,
+    legacyPolyfills: false,
     scrollRestoration: false,
     externalDir: false,
     devMemoryThresholdRestart: true,

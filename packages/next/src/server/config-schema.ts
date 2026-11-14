@@ -321,6 +321,7 @@ export const experimentalSchema = {
     ])
     .optional(),
   nextScriptWorkers: z.boolean().optional(),
+  legacyPolyfills: z.boolean().optional(),
   // The critter option is unknown, use z.any() here
   optimizeCss: z.union([z.boolean(), z.any()]).optional(),
   optimisticClientCache: z.boolean().optional(),

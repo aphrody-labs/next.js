@@ -207,6 +207,7 @@ export class TurbopackManifestLoader {
   private readonly buildId: string
   private readonly dev: boolean
   private readonly sriEnabled: boolean
+  private readonly legacyPolyfills: boolean
 
   constructor({
     distDir,
@@ -214,13 +215,16 @@ export class TurbopackManifestLoader {
     encryptionKey,
     dev,
     sriEnabled,
+    legacyPolyfills = false,
   }: {
     buildId: string
     distDir: string
     encryptionKey: string
     dev: boolean
     sriEnabled: boolean
+    legacyPolyfills?: boolean
   }) {
+    this.legacyPolyfills = legacyPolyfills
     this.distDir = distDir
     this.buildId = buildId
     this.encryptionKey = encryptionKey
@@ -440,7 +444,8 @@ export class TurbopackManifestLoader {
       Object.assign(manifest.pages, m.pages)
       if (m.rootMainFiles.length) manifest.rootMainFiles = m.rootMainFiles
       // polyfillFiles should always be the same, so we can overwrite instead of actually merging
-      if (m.polyfillFiles.length) manifest.polyfillFiles = m.polyfillFiles
+      // Baseline Widely available default: no nomodule polyfill unless opted in.
+      if (this.legacyPolyfills && m.polyfillFiles.length) manifest.polyfillFiles = m.polyfillFiles
       // Same reasoning: every App Router page emits the identical runtime asset.
       if (m.externalBrowserRuntimeFile) {
         manifest.externalBrowserRuntimeFile = m.externalBrowserRuntimeFile

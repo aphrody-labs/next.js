@@ -2187,6 +2187,7 @@ export default async function getBaseWebpackConfig(
         : new ProfilingPlugin({ runWebpackSpan, rootDir: dir }),
       new WellKnownErrorsPlugin(),
       isClient &&
+        config.experimental.legacyPolyfills &&
         new CopyFilePlugin({
           // file path to build output of `@next/polyfill-nomodule`
           filePath: require.resolve('./polyfills/polyfill-nomodule'),

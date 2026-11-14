@@ -759,7 +759,8 @@ export function getImgProps(
   const props: ImgProps = {
     ...rest,
     loading: loadingFinal,
-    fetchPriority,
+    // MWG optimize-image-priority: LCP candidates (priority/preload) are fetched at high priority.
+    fetchPriority: fetchPriority ?? (preload || priority ? "high" : undefined),
     width: widthInt,
     height: heightInt,
     decoding,

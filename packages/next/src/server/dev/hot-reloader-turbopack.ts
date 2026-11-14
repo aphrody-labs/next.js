@@ -623,6 +623,7 @@ export async function createHotReloaderTurbopack(
     encryptionKey,
     dev: true,
     sriEnabled: false,
+    legacyPolyfills: !!nextConfig.experimental.legacyPolyfills,
   })
 
   // Dev specific

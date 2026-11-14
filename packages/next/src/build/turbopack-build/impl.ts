@@ -231,6 +231,7 @@ export async function turbopackBuild(telemetry: Telemetry): Promise<{
       encryptionKey,
       dev: false,
       sriEnabled,
+      legacyPolyfills: !!config.experimental.legacyPolyfills,
     })
 
     const currentEntrypoints = await rawEntrypointsToEntrypoints(
